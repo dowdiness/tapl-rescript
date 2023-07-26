@@ -1,0 +1,23 @@
+{
+  "name": "tapl",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "keywords": [
+    "rescript"
+  ],
+  "author": "Koji Ishimoto",
+  "license": "ISC",
+  "scripts": {
+    "do": "node src/arith.bs.mjs --input-type=module",
+    "res:build": "rescript",
+    "res:clean": "rescript clean",
+    "res:dev": "rescript build -w"
+  },
+  "dependencies": {
+    "@rescript/core": "^0.4.0",
+    "rescript": "^10.1.4",
+    "rescript-nodejs": "^15.0.0"
+  }
+}
