@@ -10,14 +10,14 @@
   "author": "Koji Ishimoto",
   "license": "ISC",
   "scripts": {
-    "do": "node src/arith.bs.mjs --input-type=module",
+    "run:small": "node src/SmallStepArith.bs.mjs",
     "res:build": "rescript",
     "res:clean": "rescript clean",
     "res:dev": "rescript build -w"
   },
   "dependencies": {
-    "@rescript/core": "^0.4.0",
-    "rescript": "^10.1.4",
+    "@rescript/core": "^1.0.0",
+    "rescript": "^11.0.1",
     "rescript-nodejs": "^15.0.0"
   }
 }

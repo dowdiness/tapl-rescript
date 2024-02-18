@@ -1,5 +1,5 @@
 {
-  "name": "rescript-lox",
+  "name": "tapl",
   "sources": {
     "dir": "src",
     "subdirs": true
@@ -9,7 +9,7 @@
     "in-source": true
   },
   "suffix": ".bs.mjs",
-  "bsc-flags": ["-open RescriptCore", "-bs-g"],
+  "bsc-flags": ["-open RescriptCore"],
   "bs-dependencies": [
     "@rescript/core",
     "rescript-nodejs"
