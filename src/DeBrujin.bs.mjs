@@ -45,7 +45,7 @@ function printTerm(ctx, t) {
         }
     case "Abs" :
         var match = pickFreshName(ctx, t._0);
-        return "(λ " + match[1] + ". " + printTerm(match[0], t._1) + ")";
+        return "(λ" + match[1] + ". " + printTerm(match[0], t._1) + ")";
     case "App" :
         return "(" + printTerm(ctx, t._0) + " " + printTerm(ctx, t._1) + ")";
     
@@ -188,8 +188,7 @@ function $$eval(ctx, _t) {
     if (isVal(ctx, t)) {
       return t;
     }
-    var t$p = eval1(ctx, t);
-    _t = t$p;
+    _t = eval1(ctx, t);
     continue ;
   };
 }
@@ -207,7 +206,7 @@ $$eval(/* [] */0, {
       },
       _1: {
         TAG: "Abs",
-        _0: "y",
+        _0: "x",
         _1: {
           TAG: "Var",
           _0: 0,
@@ -234,6 +233,36 @@ $$eval(/* [] */0, {
       _1: {
         TAG: "Abs",
         _0: "z",
+        _1: {
+          TAG: "Var",
+          _0: 0,
+          _1: 1
+        }
+      }
+    });
+
+$$eval(/* [] */0, {
+      TAG: "App",
+      _0: {
+        TAG: "Abs",
+        _0: "x",
+        _1: {
+          TAG: "Abs",
+          _0: "x",
+          _1: {
+            TAG: "Abs",
+            _0: "x",
+            _1: {
+              TAG: "Var",
+              _0: 2,
+              _1: 3
+            }
+          }
+        }
+      },
+      _1: {
+        TAG: "Abs",
+        _0: "x",
         _1: {
           TAG: "Var",
           _0: 0,

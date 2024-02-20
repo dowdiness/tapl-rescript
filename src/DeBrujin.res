@@ -34,7 +34,7 @@ let rec printTerm = (ctx: context, t: term) => {
   switch t {
     | Abs(k, t1) => {
       let (ctx', k') = pickFreshName(ctx, k)
-      `(λ ${k'}. ${printTerm(ctx', t1)})`
+      `(λ${k'}. ${printTerm(ctx', t1)})`
     }
     | App(t1, t2) => {
       `(${printTerm(ctx, t1)} ${printTerm(ctx, t2)})`
@@ -102,7 +102,7 @@ let isVal = (_ctx, t) => {
 exception NoRuleApplies(term)
 
 // one step evaluation
-let rec eval1 = (ctx, t) => {
+let rec eval1 = (ctx: context, t) => {
   switch t {
     | App(Abs(_, t12), v2) if isVal(ctx, v2) => substTop(v2, t12)
     | App(v1, t2) if isVal(ctx, v1) => {
@@ -120,17 +120,19 @@ let rec eval1 = (ctx, t) => {
 let rec eval = (ctx, t) => {
   // print terms at each step of the evaluation
   Console.log(printTerm(ctx, t))
-  if isVal(ctx, t) {
-    t
-  } else {
-    switch eval1(ctx, t) {
-      | t' => eval(ctx, t')
-    }
+  switch isVal(ctx, t) {
+    | true  => t
+    | false => eval(ctx, eval1(ctx, t))
   }
 }
 
 // ((λ x. x) (λ y. y))
-let _ = eval(list{}, App(Abs("x", Var(0, 1)), Abs("y", Var(0, 1))))
+let _ = eval(list{}, App(Abs("x", Var(0, 1)), Abs("x", Var(0, 1))))
 
-// ((λ x. λ y. x) (λ z. z))
+// ((λ x. (λ y. x)) (λ z. z))
 let _ = eval(list{}, App(Abs("x", Abs("y", Var(1, 2))), Abs("z", Var(0, 1))))
+
+// if terms have same name variable, create fresh name variable
+// ((λ x. (λ x. (λ x. x))) (λ x. x)) -> ((λ x. (λ x'. (λ x''. x))) (λ x. x))
+// (λ x. (λ x. (λ x. x))) -> (λ x. (λ x'. (λ x''. x'')))
+let _ = eval(list{}, App(Abs("x", Abs("x", Abs("x", Var(2, 3)))), Abs("x", Var(0, 1))))
