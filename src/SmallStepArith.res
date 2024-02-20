@@ -76,8 +76,8 @@ let rec eval = (term: term) => {
   }
 }
 
-Console.log("Succ(Succ(Succ(Succ(Succ(Zero)))))")
+Console.log("Example1: Succ")
 let _ = eval(Succ(Succ(Succ(Succ(Succ(Zero))))))
 
-Console.log("If(True, If(False, False, False), True)")
+Console.log("Example2: If")
 let _ = eval(If(True, If(False, False, False), True))

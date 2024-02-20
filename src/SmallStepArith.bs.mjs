@@ -128,7 +128,7 @@ function $$eval(_term) {
   };
 }
 
-console.log("Succ(Succ(Succ(Succ(Succ(Zero)))))");
+console.log("Example1: Succ");
 
 $$eval({
       TAG: "Succ",
@@ -147,7 +147,7 @@ $$eval({
       }
     });
 
-console.log("If(True, If(False, False, False), True)");
+console.log("Example2: If");
 
 $$eval({
       TAG: "If",
