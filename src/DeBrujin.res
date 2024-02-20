@@ -2,17 +2,17 @@ type deBrujinIndex = int
 type depth = int
 type varName = string
 type rec term =
-  // 変数
+  // variable
   | Var(deBrujinIndex, depth)
-  // ラムダ抽象
+  // lambda abstraction
   | Abs(varName, term)
-  // 関数適用
+  // application
   | App(term, term)
 
 type binding = NameBind
 type context = list<(varName, binding)>
 
-// 新しい名前を生成
+// generate new name
 let rec pickFreshName = (ctx: context, name): (context, varName) => {
   switch ctx->List.getBy(((varName, _binding)) => name == varName) {
     | Some(name, _binding) => pickFreshName(ctx, name ++ "'")
@@ -20,7 +20,7 @@ let rec pickFreshName = (ctx: context, name): (context, varName) => {
   }
 }
 
-// deBrujinIndexを元にしてcontextから変数名を取得する
+// find variable name by deBrujinIndex
 let indexToName = (ctx: context, x: deBrujinIndex) => {
   switch ctx->List.get(x) {
     | Some(name, _binding) => name
@@ -28,7 +28,7 @@ let indexToName = (ctx: context, x: deBrujinIndex) => {
   }
 }
 
-// 項のPrettyPrinter
+// PrettyPrinter
 let rec printTerm = (ctx: context, t: term) => {
   switch t {
     | Abs(k, t1) => {
@@ -48,18 +48,15 @@ let rec printTerm = (ctx: context, t: term) => {
   }
 }
 
-// シフトと代入
-
-// シフト演算
 let shift = (d: deBrujinIndex, t) => {
   let rec walk = (c, t) => {
     switch t {
       | Var(k, n) => {
         if k >= c {
-          // 自由変数なのでシフトする
+          // shift it because it's a free variable
           Var(k + d, n + d)
         } else {
-          // 束縛変数なのでシフトしない
+          // don't shift it because it's a bound variable
           Var(k, n + d)
         }
       }
@@ -70,8 +67,7 @@ let shift = (d: deBrujinIndex, t) => {
   walk(0, t)
 }
 
-// [j -> s]t の代入関数
-// j: 代入する変数のindex, s: 代入される項, t:代入の発生する項
+// [j -> s]t
 let subst = (j: deBrujinIndex, s, t) => {
   let rec walk = (c, t) => {
     switch t {
@@ -89,12 +85,12 @@ let subst = (j: deBrujinIndex, s, t) => {
   walk(0, t)
 }
 
-// ベータ簡約
+// β-reduction
 let substTop = (s, t) => {
   shift(-1, subst(0, shift(1, s), t))
 }
 
-// 値=ラムダ抽象
+// value is lambda abstraction
 let isVal = (_ctx, t) => {
   switch t {
     | Abs(_, _) => true
@@ -104,7 +100,7 @@ let isVal = (_ctx, t) => {
 
 exception NoRuleApplies(term)
 
-// ワンステップ評価
+// one step evaluation
 let rec eval1 = (ctx, t) => {
   switch t {
     | App(Abs(_, t12), v2) if isVal(ctx, v2) => substTop(v2, t12)
@@ -120,8 +116,8 @@ let rec eval1 = (ctx, t) => {
   }
 }
 
-// 評価
 let rec eval = (ctx, t) => {
+  // print terms at each step of the evaluation
   Console.log(printTerm(ctx, t))
   if isVal(ctx, t) {
     t
