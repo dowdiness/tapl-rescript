@@ -53,27 +53,18 @@ function typeOf(ctx, t) {
         }
     case "App" :
         var match = typeOf(ctx, t._0);
-        if (match === undefined) {
-          return ;
-        }
-        if (typeof match !== "object") {
-          return ;
-        }
-        if (match.TAG !== "TyArr") {
-          return ;
-        }
-        var tyT2$1 = typeOf(ctx, t._1);
-        if (tyT2$1 !== undefined && Caml_obj.equal(tyT2$1, match._0)) {
+        var match$1 = typeOf(ctx, t._1);
+        if (match !== undefined && !(typeof match !== "object" || !(match.TAG === "TyArr" && match$1 !== undefined && Caml_obj.equal(match$1, match._0)))) {
           return match._1;
         } else {
           return ;
         }
     case "If" :
-        var match$1 = typeOf(ctx, t._0);
-        var match$2 = typeOf(ctx, t._1);
-        var match$3 = typeOf(ctx, t._2);
-        if (match$1 !== undefined && typeof match$1 !== "object" && match$2 !== undefined && match$3 !== undefined && Caml_obj.equal(match$2, match$3)) {
-          return match$2;
+        var match$2 = typeOf(ctx, t._0);
+        var match$3 = typeOf(ctx, t._1);
+        var match$4 = typeOf(ctx, t._2);
+        if (match$2 !== undefined && typeof match$2 !== "object" && match$3 !== undefined && match$4 !== undefined && Caml_obj.equal(match$3, match$4)) {
+          return match$3;
         } else {
           return ;
         }
@@ -142,10 +133,30 @@ function printTerm(ctx, t) {
         var match = pickFreshName(ctx, t._0);
         return "(λ" + match[1] + ":" + printTY(t._1) + ". " + printTerm(match[0], t._2) + ")";
     case "App" :
-        return "(" + printTerm(ctx, t._0) + " " + printTerm(ctx, t._1) + ")";
+        return printTerm(ctx, t._0) + " " + printTerm(ctx, t._1);
     case "If" :
         return "if " + printTerm(ctx, t._0) + " then " + printTerm(ctx, t._1) + " else " + printTerm(ctx, t._2);
     
+  }
+}
+
+function printContext(ctx) {
+  if (Core__List.length(ctx) === 0) {
+    return "∅";
+  } else {
+    return Core__List.reduce(ctx, "{", (function (_acc, pair) {
+                    var acc = _acc;
+                    if (_acc !== "{") {
+                      acc = _acc + ", ";
+                    }
+                    var ty = pair[1];
+                    var name = pair[0];
+                    if (typeof ty !== "object") {
+                      return acc + name + ": NameBind";
+                    } else {
+                      return acc + name + ": " + printTY(ty._0);
+                    }
+                  })).concat("}");
   }
 }
 
@@ -324,7 +335,7 @@ function eval1(ctx, t) {
 function $$eval(ctx, _t) {
   while(true) {
     var t = _t;
-    console.log(printTerm(ctx, t), "Type is", printTY(Core__Option.getOr(typeOf(ctx, t), {
+    console.log(printContext(ctx), "|- Term: ", printTerm(ctx, t), "| Type: ", printTY(Core__Option.getOr(typeOf(ctx, t), {
                   TAG: "TyError",
                   _0: "error!"
                 })));
@@ -368,6 +379,8 @@ $$eval(/* [] */0, {
       }
     });
 
+console.log("");
+
 $$eval(/* [] */0, {
       TAG: "App",
       _0: {
@@ -400,6 +413,8 @@ $$eval(/* [] */0, {
         }
       }
     });
+
+console.log("");
 
 $$eval(/* [] */0, {
       TAG: "App",
@@ -459,6 +474,7 @@ export {
   indexToName ,
   printTY ,
   printTerm ,
+  printContext ,
   shift ,
   subst ,
   substTop ,

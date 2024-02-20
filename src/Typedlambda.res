@@ -2,6 +2,7 @@
 type deBrujinIndex = int
 type depth = int
 
+// Type
 type rec ty =
   // Arrow
   | TyArr(ty, ty)
@@ -9,8 +10,9 @@ type rec ty =
   | TyError(string)
 
 type varName = string
+// Term
 type rec term =
-  // variabler
+  // variable
   | Var(deBrujinIndex, depth)
   // lambda abstraction
   | Abs(varName, ty, term)
@@ -24,7 +26,7 @@ type binding =
   | NameBind
   | VarBind(ty)
 
-// typing context
+// Typing context
 type context = list<(varName, binding)>
 
 let addBinding = (ctx: context, name, bind): context => ctx->List.add((name, bind))
@@ -43,9 +45,12 @@ let getTypeFromContext = (ctx, i: deBrujinIndex) => {
   }
 }
 
+// Type Check
 let rec typeOf = (ctx, t) => {
   switch t {
+    // T-Var
     | Var(i, _) => getTypeFromContext(ctx, i)
+    // T-Abs
     | Abs(name, tyT1, t2) => {
       let ctx' = addBinding(ctx, name, VarBind((tyT1)))
       switch typeOf(ctx', t2) {
@@ -53,27 +58,23 @@ let rec typeOf = (ctx, t) => {
         | None => None
       }
     }
+    // T-App
     | App(t1, t2) => {
-      switch typeOf(ctx, t1) {
-        | Some(TyArr(tyT11, tyT12)) => {
-          switch typeOf(ctx, t2) {
-            | Some(tyT2) => {
-              if tyT2 == tyT11 {
-                Some(tyT12)
-              } else {
-                None
-              }
-            }
-            | None => None
-          }
+      switch (typeOf(ctx, t1), typeOf(ctx, t2)) {
+        | (Some(TyArr(tyT11, tyT12)), Some(tyT2)) => {
+          tyT2 == tyT11 ? Some(tyT12) : None
         }
-        | _ => None
+        | (_, _) => None
       }
     }
+    // T-True
     | True => Some(TyBool)
+    // T-False
     | False => Some(TyBool)
+    // T-If
     | If(t1, t2, t3) => {
       switch (typeOf(ctx, t1), typeOf(ctx, t2), typeOf(ctx, t3)) {
+        // ty2 and ty3 need to have same type
         | (Some(TyBool), Some(ty2), Some(ty3)) => ty2 == ty3 ? Some(ty2) : None
         | _ => None
       }
@@ -89,7 +90,7 @@ let rec pickFreshName = (ctx: context, name): (context, varName) => {
   }
 }
 
-// find variable name by deBrujinIndex
+// Find variable name by De Brujin index
 let indexToName = (ctx: context, x: deBrujinIndex) => {
   switch ctx->List.get(x) {
     | Some(name, _binding) => name
@@ -97,6 +98,7 @@ let indexToName = (ctx: context, x: deBrujinIndex) => {
   }
 }
 
+// PrettyPrinter for type
 let rec printTY = (ty: ty) => {
   switch ty {
     | TyArr(ty1, ty2) => `(${printTY(ty1)} -> ${printTY(ty2)})`
@@ -105,7 +107,7 @@ let rec printTY = (ty: ty) => {
   }
 }
 
-// PrettyPrinter
+// PrettyPrinter for term
 let rec printTerm = (ctx: context, t: term) => {
   switch t {
     | Abs(name, ty, t1) => {
@@ -113,7 +115,7 @@ let rec printTerm = (ctx: context, t: term) => {
       `(λ${name'}:${printTY(ty)}. ${printTerm(ctx', t1)})`
     }
     | App(t1, t2) => {
-      `(${printTerm(ctx, t1)} ${printTerm(ctx, t2)})`
+      `${printTerm(ctx, t1)} ${printTerm(ctx, t2)}`
     }
     | Var(x, n) => {
       if List.length(ctx) == n {
@@ -127,6 +129,21 @@ let rec printTerm = (ctx: context, t: term) => {
     | If(t1, t2, t3) => {
       `if ${printTerm(ctx, t1)} then ${printTerm(ctx, t2)} else ${printTerm(ctx, t3)}`
     }
+  }
+}
+
+let printContext = (ctx: context) => {
+  if List.length(ctx) == 0 {
+    "∅"
+  } else {
+    ctx->List.reduce("{", (_acc, pair) => {
+      let acc = ref(_acc)
+      if _acc !== "{" { acc := `${_acc}, ` }
+      switch pair {
+        | (name, VarBind(ty)) => `${acc.contents}${name}: ${printTY(ty)}`
+        | (name, NameBind) => `${acc.contents}${name}: NameBind`
+      }
+    })->String.concat("}")
   }
 }
 
@@ -152,7 +169,7 @@ let shift = (d: deBrujinIndex, t) => {
   walk(0, t)
 }
 
-// [j -> s]t
+// Substitute [j -> s]t
 let subst = (j: deBrujinIndex, s, t) => {
   let rec walk = (c, t) => {
     switch t {
@@ -220,9 +237,11 @@ let rec eval1 = (ctx, t) => {
 
 let rec eval = (ctx, t) => {
   // print terms at each step of the evaluation
-  Console.log3(
+  Console.log5(
+    printContext(ctx),
+    "|- Term: ",
     printTerm(ctx, t),
-    "Type is",
+    "| Type: ",
     printTY(Option.getOr(
         typeOf(ctx, t),
         TyError("error!")
@@ -235,11 +254,13 @@ let rec eval = (ctx, t) => {
   }
 }
 
-// ((λx:(Bool -> Bool). x) (λy:Bool. y))
+// (λx:(Bool -> Bool). x true) (λy:Bool. y)
 let _ = eval(list{}, App(Abs("x", TyArr(TyBool, TyBool), App(Var(0, 1), True)), Abs("y", TyBool, Var(0, 1))))
+Console.log("")
 
-// ((λx:Bool. (λ y:Bool. x)) (λz:Bool. z))
+// (λx:(Bool -> Bool). (λy:Bool. x)) (λz:Bool. z)
 let _ = eval(list{}, App(Abs("x", TyArr(TyBool, TyBool), Abs("y", TyBool, Var(1, 2))), Abs("z", TyBool, Var(0, 1))))
+Console.log("")
 
-// ((λx:(Bool -> Bool). (λy:((Bool -> Bool) -> Bool). (y x))) (λz:Bool. z))
+// (λx:(Bool -> Bool). (λy:((Bool -> Bool) -> Bool). y x)) (λz:Bool. z)
 let _ = eval(list{}, App(Abs("x", TyArr(TyBool, TyBool), Abs("y", TyArr(TyArr(TyBool, TyBool), TyBool), App((Var(0, 2), Var(1, 2))))), Abs("z", TyBool, Var(0, 1))))
