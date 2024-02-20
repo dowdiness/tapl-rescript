@@ -12,6 +12,7 @@
   "scripts": {
     "run:small": "node src/SmallStepArith.bs.mjs",
     "run:debrujin": "node src/Debrujin.bs.mjs",
+    "run:typed": "node src/TypedLambda.bs.mjs",
     "res:build": "rescript",
     "res:clean": "rescript clean",
     "res:dev": "rescript build -w"
