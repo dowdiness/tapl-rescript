@@ -178,7 +178,7 @@ let substTop = (s, t) => {
   shift(-1, subst(0, shift(1, s), t))
 }
 
-// value is lambda abstraction
+// Values are lambda abstraction, True and False.
 let isVal = (_ctx, t) => {
   switch t {
     | Abs(_, _, _) => true
