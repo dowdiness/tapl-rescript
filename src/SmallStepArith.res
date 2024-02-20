@@ -66,7 +66,7 @@ let rec eval1 = (term: term) => {
 }
 
 let rec eval = (term: term) => {
-  // 1ステップ毎の評価結果を表示する
+  // print terms at each step of the evaluation
   Console.log(term)
   if isVal(term) {
     term
