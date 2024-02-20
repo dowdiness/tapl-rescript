@@ -1,3 +1,4 @@
+// Implementation of Chapter 4 on Types and Programming Languages
 type rec term =
   | True
   | False

@@ -1,3 +1,4 @@
+// Implementation of Chapter 7 on Types and Programming Languages
 type deBrujinIndex = int
 type depth = int
 type varName = string
