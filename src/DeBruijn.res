@@ -1,10 +1,10 @@
 // Implementation of Chapter 7 on Types and Programming Languages
-type deBrujinIndex = int
+type deBruijnIndex = int
 type depth = int
 type varName = string
 type rec term =
   // variable
-  | Var(deBrujinIndex, depth)
+  | Var(deBruijnIndex, depth)
   // lambda abstraction
   | Abs(varName, term)
   // application
@@ -21,8 +21,8 @@ let rec pickFreshName = (ctx: context, name): (context, varName) => {
   }
 }
 
-// find variable name by deBrujinIndex
-let indexToName = (ctx: context, x: deBrujinIndex) => {
+// find variable name by deBruijnIndex
+let indexToName = (ctx: context, x: deBruijnIndex) => {
   switch ctx->List.get(x) {
     | Some(name, _binding) => name
     | None => `[${String.make(x)} bad index]`
@@ -49,7 +49,7 @@ let rec printTerm = (ctx: context, t: term) => {
   }
 }
 
-let shift = (d: deBrujinIndex, t) => {
+let shift = (d: deBruijnIndex, t) => {
   let rec walk = (c, t) => {
     switch t {
       | Var(k, n) => {
@@ -69,7 +69,7 @@ let shift = (d: deBrujinIndex, t) => {
 }
 
 // [j -> s]t
-let subst = (j: deBrujinIndex, s, t) => {
+let subst = (j: deBruijnIndex, s, t) => {
   let rec walk = (c, t) => {
     switch t {
       | Var(k, n) => {

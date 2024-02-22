@@ -1,5 +1,5 @@
 // Implementation of Chapter 10 on Types and Programming Languages
-type deBrujinIndex = int
+type deBruijnIndex = int
 type depth = int
 
 // Type
@@ -13,7 +13,7 @@ type varName = string
 // Term
 type rec term =
   // variable
-  | Var(deBrujinIndex, depth)
+  | Var(deBruijnIndex, depth)
   // lambda abstraction
   | Abs(varName, ty, term)
   // application
@@ -31,14 +31,14 @@ type context = list<(varName, binding)>
 
 let addBinding = (ctx: context, name, bind): context => ctx->List.add((name, bind))
 
-let getBinding = (ctx: context, n: deBrujinIndex) => {
+let getBinding = (ctx: context, n: deBruijnIndex) => {
   switch ctx->List.get(n) {
     | Some(_, binding) => Some(binding)
     | None => None
   }
 }
 
-let getTypeFromContext = (ctx, i: deBrujinIndex) => {
+let getTypeFromContext = (ctx, i: deBruijnIndex) => {
   switch getBinding(ctx, i) {
     | Some(VarBind(ty)) => Some(ty)
     | _ => None
@@ -90,8 +90,8 @@ let rec pickFreshName = (ctx: context, name): (context, varName) => {
   }
 }
 
-// Find variable name by De Brujin index
-let indexToName = (ctx: context, x: deBrujinIndex) => {
+// Find variable name by De Bruijn index
+let indexToName = (ctx: context, x: deBruijnIndex) => {
   switch ctx->List.get(x) {
     | Some(name, _binding) => name
     | None => `[${String.make(x)} bad index]`
@@ -147,7 +147,7 @@ let printContext = (ctx: context) => {
   }
 }
 
-let shift = (d: deBrujinIndex, t) => {
+let shift = (d: deBruijnIndex, t) => {
   let rec walk = (c, t) => {
     switch t {
       | Var(k, n) => {
@@ -170,7 +170,7 @@ let shift = (d: deBrujinIndex, t) => {
 }
 
 // Substitute [j -> s]t
-let subst = (j: deBrujinIndex, s, t) => {
+let subst = (j: deBruijnIndex, s, t) => {
   let rec walk = (c, t) => {
     switch t {
       | Var(k, n) => {
@@ -208,7 +208,7 @@ let isVal = (_ctx, t) => {
 exception NoRuleApplies(term)
 
 // one step evaluation
-let rec eval1 = (ctx, t) => {
+let rec eval1 = (ctx: context, t) => {
   switch t {
     // E-AppAbs
     | App(Abs(_, _, t12), v2) if isVal(ctx, v2) => substTop(v2, t12)
