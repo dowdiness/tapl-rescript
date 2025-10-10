@@ -556,6 +556,148 @@ module LLVMLowering = {
       mainFunc
     }
   }
+  // Phase 3: Closures and memory management (Tuple, Proj)
+  let lowerPhase3 = (anf: ANF.t): string => {
+    let functions = ref(list{})
+    let mainInstructions = ref(list{})
+
+    let rec extractFunctions = (t: ANF.t) => {
+      switch t {
+      | Fun(f, params, body, cont) => {
+          // Generate function definition
+          let paramList = params->List.map(p => `i64 %${p}`)->List.toArray->Array.joinWith(", ")
+          let bodyInstructions = ref(list{})
+
+          let rec generateBody = (bodyTerm: ANF.t) => {
+            switch bodyTerm {
+            | Halt(AtomInt(n)) =>
+                bodyInstructions := list{`ret i64 ${Int.toString(n)}`, ...bodyInstructions.contents}
+            | Halt(AtomVar(x)) =>
+                bodyInstructions := list{`ret i64 %${x}`, ...bodyInstructions.contents}
+            | Bop(r, Plus, x, y, e) => {
+                bodyInstructions := list{`%${r} = add i64 ${atomToString(x)}, ${atomToString(y)}`, ...bodyInstructions.contents}
+                generateBody(e)
+              }
+            | Bop(r, Minus, x, y, e) => {
+                bodyInstructions := list{`%${r} = sub i64 ${atomToString(x)}, ${atomToString(y)}`, ...bodyInstructions.contents}
+                generateBody(e)
+              }
+            | Tuple(r, vs, e) => {
+                // Create tuple structure
+                let size = List.length(vs)
+
+                // Allocate memory for tuple
+                bodyInstructions := list{`%${r}_ptr = alloca { ${Array.make(~length=size, "i64")->Array.joinWith(", ")} }`, ...bodyInstructions.contents}
+
+                // Store each element
+                vs->List.mapWithIndex((i, atom) => {
+                  let gepInstr = `%${r}_gep${Int.toString(i)} = getelementptr { ${Array.make(~length=size, "i64")->Array.joinWith(", ")} }, { ${Array.make(~length=size, "i64")->Array.joinWith(", ")} }* %${r}_ptr, i32 0, i32 ${Int.toString(i)}`
+                  let storeInstr = `store i64 ${atomToString(atom)}, i64* %${r}_gep${Int.toString(i)}`
+                  bodyInstructions := list{storeInstr, gepInstr, ...bodyInstructions.contents}
+                })->ignore
+
+                // Cast to i64 for compatibility (simplified approach)
+                bodyInstructions := list{`%${r} = ptrtoint { ${Array.make(~length=size, "i64")->Array.joinWith(", ")} }* %${r}_ptr to i64`, ...bodyInstructions.contents}
+                generateBody(e)
+              }
+            | Proj(r, x, i, e) => {
+                // Project from tuple - simplified approach (assume 3-element tuples)
+                let ptrVar = `${x}_ptr_${r}`
+                bodyInstructions := list{`%${ptrVar} = inttoptr i64 %${x} to { i64, i64, i64 }*`, ...bodyInstructions.contents}
+                bodyInstructions := list{`%${r}_gep = getelementptr { i64, i64, i64 }, { i64, i64, i64 }* %${ptrVar}, i32 0, i32 ${Int.toString(i)}`, ...bodyInstructions.contents}
+                bodyInstructions := list{`%${r} = load i64, i64* %${r}_gep`, ...bodyInstructions.contents}
+                generateBody(e)
+              }
+            | _ => failwith("Phase 3: Unsupported construct in function body")
+            }
+          }
+
+          generateBody(body)
+
+          let bodyStr = bodyInstructions.contents->List.reverse->List.toArray->Array.joinWith("\n  ")
+          let funcDef = `define i64 @${f}(${paramList}) {\nentry:\n  ${bodyStr}\n}`
+
+          functions := list{funcDef, ...functions.contents}
+          extractFunctions(cont)
+        }
+      | Halt(AtomVar(x)) => {
+          // Check if this is a function reference by looking at the functions list
+          let isFunctionName = functions.contents->List.some(funcDef =>
+            Js.String2.includes(funcDef, `@${x}(`)
+          )
+          if isFunctionName {
+            // Function reference - return function pointer (not supported in simple Phase 3)
+            failwith(`Phase 3: Function references not yet supported: ${x}`)
+          } else {
+            // Variable reference - return the variable value
+            mainInstructions := list{`ret i64 %${x}`, ...mainInstructions.contents}
+          }
+        }
+      | Halt(AtomInt(n)) =>
+          mainInstructions := list{`ret i64 ${Int.toString(n)}`, ...mainInstructions.contents}
+      | App(r, f, args, e) => {
+          // Simple direct function call (Phase 3 - no closures yet)
+          let argList = args->List.map(atom => {
+            switch atom {
+            | AtomInt(i) => `i64 ${Int.toString(i)}`
+            | AtomVar(x) => `i64 %${x}`
+            | AtomGlob(x) => `i64 @${x}`
+            }
+          })->List.toArray->Array.joinWith(", ")
+          mainInstructions := list{`%${r} = call i64 @${f}(${argList})`, ...mainInstructions.contents}
+          extractFunctions(e)
+        }
+      | Bop(r, Plus, x, y, e) => {
+          mainInstructions := list{`%${r} = add i64 ${atomToString(x)}, ${atomToString(y)}`, ...mainInstructions.contents}
+          extractFunctions(e)
+        }
+      | Bop(r, Minus, x, y, e) => {
+          mainInstructions := list{`%${r} = sub i64 ${atomToString(x)}, ${atomToString(y)}`, ...mainInstructions.contents}
+          extractFunctions(e)
+        }
+      | Tuple(r, vs, e) => {
+          // Create tuple structure in main
+          let size = List.length(vs)
+
+          // Allocate memory for tuple
+          mainInstructions := list{`%${r}_ptr = alloca { ${Array.make(~length=size, "i64")->Array.joinWith(", ")} }`, ...mainInstructions.contents}
+
+          // Store each element
+          vs->List.mapWithIndex((i, atom) => {
+            let gepInstr = `%${r}_gep${Int.toString(i)} = getelementptr { ${Array.make(~length=size, "i64")->Array.joinWith(", ")} }, { ${Array.make(~length=size, "i64")->Array.joinWith(", ")} }* %${r}_ptr, i32 0, i32 ${Int.toString(i)}`
+            let storeInstr = `store i64 ${atomToString(atom)}, i64* %${r}_gep${Int.toString(i)}`
+            mainInstructions := list{storeInstr, gepInstr, ...mainInstructions.contents}
+          })->ignore
+
+          // Cast to i64 for compatibility
+          mainInstructions := list{`%${r} = ptrtoint { ${Array.make(~length=size, "i64")->Array.joinWith(", ")} }* %${r}_ptr to i64`, ...mainInstructions.contents}
+          extractFunctions(e)
+        }
+      | Proj(r, x, i, e) => {
+          // Project from tuple in main - we need to know the tuple size
+          // For simplicity, assume all tuples have the same structure for now
+          let ptrVar = `${x}_ptr_${r}`
+          mainInstructions := list{`%${ptrVar} = inttoptr i64 %${x} to { i64, i64, i64 }*`, ...mainInstructions.contents}
+          mainInstructions := list{`%${r}_gep = getelementptr { i64, i64, i64 }, { i64, i64, i64 }* %${ptrVar}, i32 0, i32 ${Int.toString(i)}`, ...mainInstructions.contents}
+          mainInstructions := list{`%${r} = load i64, i64* %${r}_gep`, ...mainInstructions.contents}
+          extractFunctions(e)
+        }
+      | _ => failwith("Phase 3: Unsupported ANF construct")
+      }
+    }
+
+    extractFunctions(anf)
+
+    let functionsStr = functions.contents->List.reverse->List.toArray->Array.joinWith("\n\n")
+    let mainBody = mainInstructions.contents->List.reverse->List.toArray->Array.joinWith("\n  ")
+    let mainFunc = `define i64 @main() {\nentry:\n  ${mainBody}\n}`
+
+    if List.length(functions.contents) > 0 {
+      `${functionsStr}\n\n${mainFunc}`
+    } else {
+      mainFunc
+    }
+  }
 }
 
 module Compiler = {
@@ -771,6 +913,40 @@ try {
 | Failure(msg) => Console.log2("Expected failure:", msg)
 | _ => Console.log("Unexpected error")
 }
+
+Console.log("\n=== LLVMlite Lowering Phase 3 Tests ===")
+
+// Test 9: Simple tuple creation and projection
+let testSimpleTuple = ANF.Tuple("t", list{ANF.AtomInt(10), ANF.AtomInt(20), ANF.AtomInt(30)},
+  ANF.Proj("x", "t", 1, ANF.Halt(ANF.AtomVar("x")))
+)
+Console.log("\n--- Test 9: Simple tuple creation and projection ---")
+Console.log2("ANF:", Print.printANF(testSimpleTuple))
+Console.log2("LLVM IR:", LLVMLowering.lowerPhase3(testSimpleTuple))
+
+// Test 10: Tuple with variables
+let testTupleWithVars = ANF.Bop("a", Plus, ANF.AtomInt(5), ANF.AtomInt(3),
+  ANF.Bop("b", Plus, ANF.AtomInt(10), ANF.AtomInt(2),
+    ANF.Tuple("t", list{ANF.AtomVar("a"), ANF.AtomVar("b"), ANF.AtomInt(100)},
+      ANF.Proj("result", "t", 0, ANF.Halt(ANF.AtomVar("result")))
+    )
+  )
+)
+Console.log("\n--- Test 10: Tuple with variables ---")
+Console.log2("ANF:", Print.printANF(testTupleWithVars))
+Console.log2("LLVM IR:", LLVMLowering.lowerPhase3(testTupleWithVars))
+
+// Test 11: Multiple projections from same tuple
+let testMultipleProj = ANF.Tuple("t", list{ANF.AtomInt(1), ANF.AtomInt(2), ANF.AtomInt(3)},
+  ANF.Proj("x", "t", 0,
+    ANF.Proj("y", "t", 2,
+      ANF.Bop("sum", Plus, ANF.AtomVar("x"), ANF.AtomVar("y"), ANF.Halt(ANF.AtomVar("sum")))
+    )
+  )
+)
+Console.log("\n--- Test 11: Multiple projections from same tuple ---")
+Console.log2("ANF:", Print.printANF(testMultipleProj))
+Console.log2("LLVM IR:", LLVMLowering.lowerPhase3(testMultipleProj))
 
 Console.log("\n=== LLVMlite Lowering Phase 2 Tests ===")
 
