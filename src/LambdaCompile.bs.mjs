@@ -915,11 +915,21 @@ function lowerPhase2(anf) {
                   };
                   return ;
               case "AtomVar" :
-                  mainInstructions.contents = {
-                    hd: "ret i64 %" + x._0,
-                    tl: mainInstructions.contents
-                  };
-                  return ;
+                  var x$1 = x._0;
+                  var isFunctionName = Core__List.some(functions.contents, (function(x$1){
+                      return function (funcDef) {
+                        return funcDef.includes("@" + x$1 + "(");
+                      }
+                      }(x$1)));
+                  if (isFunctionName) {
+                    return PervasivesU.failwith("Phase 2: Function references not yet supported: " + x$1);
+                  } else {
+                    mainInstructions.contents = {
+                      hd: "ret i64 %" + x$1,
+                      tl: mainInstructions.contents
+                    };
+                    return ;
+                  }
               case "AtomGlob" :
                   return PervasivesU.failwith("Phase 2: Unsupported ANF construct");
               

@@ -506,8 +506,17 @@ module LLVMLowering = {
           extractFunctions(cont)
         }
       | Halt(AtomVar(x)) => {
-          // Variable reference - could be function call result or function reference
-          mainInstructions := list{`ret i64 %${x}`, ...mainInstructions.contents}
+          // Check if this is a function reference by looking at the functions list
+          let isFunctionName = functions.contents->List.some(funcDef =>
+            Js.String2.includes(funcDef, `@${x}(`)
+          )
+          if isFunctionName {
+            // Function reference - return function pointer (not supported in simple Phase 2)
+            failwith(`Phase 2: Function references not yet supported: ${x}`)
+          } else {
+            // Variable reference - return the variable value
+            mainInstructions := list{`ret i64 %${x}`, ...mainInstructions.contents}
+          }
         }
       | Halt(AtomInt(n)) =>
           mainInstructions := list{`ret i64 ${Int.toString(n)}`, ...mainInstructions.contents}
