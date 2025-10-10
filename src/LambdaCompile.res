@@ -820,6 +820,17 @@ module Compiler = {
   let compile = (term: Lam.t) => {
     term->Lam.rename->ANF.convert->ClosureConversion.convert->Hoisting.hoist
   }
+
+  let compileToLLVM = (term: Lam.t, phase: int) => {
+    let anf = compile(term)
+    switch phase {
+    | 1 => LLVMLowering.lowerPhase1(anf)
+    | 2 => LLVMLowering.lowerPhase2(anf)
+    | 3 => LLVMLowering.lowerPhase3(anf)
+    | 4 => LLVMLowering.lowerPhase4(anf)
+    | _ => failwith("Unsupported LLVM lowering phase")
+    }
+  }
 }
 
 // Test cases
@@ -1130,3 +1141,33 @@ let testNestedIf = ANF.If(ANF.AtomInt(1),
 Console.log("\n--- Test 14: Nested if statements ---")
 Console.log2("ANF:", Print.printANF(testNestedIf))
 Console.log2("LLVM IR:", LLVMLowering.lowerPhase4(testNestedIf))
+
+Console.log("\n=== Integrated Compiler Pipeline Tests ===")
+
+// Test 15: Complete pipeline - simple arithmetic
+let testPipelineArith = Lam.Bop(Plus, Lam.Int(10), Lam.Int(5))
+Console.log("\n--- Test 15: Complete pipeline - arithmetic ---")
+Console.log2("Original:", Print.printLam(testPipelineArith))
+Console.log2("LLVM IR (Phase 1):", Compiler.compileToLLVM(testPipelineArith, 1))
+
+// Test 16: Complete pipeline - function call
+let testPipelineFunc = Lam.App(Lam.Lam("x", Lam.Bop(Plus, Lam.Var("x"), Lam.Int(1))), Lam.Int(42))
+Console.log("\n--- Test 16: Complete pipeline - function call ---")
+Console.log2("Original:", Print.printLam(testPipelineFunc))
+try {
+  Console.log2("LLVM IR (Phase 2):", Compiler.compileToLLVM(testPipelineFunc, 2))
+} catch {
+| Failure(msg) => Console.log2("Expected complexity:", msg)
+| _ => Console.log("Unexpected error")
+}
+
+// Test 17: Complete pipeline - conditional
+let testPipelineIf = Lam.If(Lam.Int(1), Lam.Bop(Plus, Lam.Int(10), Lam.Int(5)), Lam.Bop(Minus, Lam.Int(20), Lam.Int(3)))
+Console.log("\n--- Test 17: Complete pipeline - conditional ---")
+Console.log2("Original:", Print.printLam(testPipelineIf))
+try {
+  Console.log2("LLVM IR (Phase 4):", Compiler.compileToLLVM(testPipelineIf, 4))
+} catch {
+| Failure(msg) => Console.log2("Expected complexity:", msg)
+| _ => Console.log("Unexpected error")
+}

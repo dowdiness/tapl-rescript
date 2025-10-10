@@ -1486,8 +1486,25 @@ function compile(term) {
   return hoist(go$2(go$1(rename(term), mkHalt)));
 }
 
+function compileToLLVM(term, phase) {
+  var anf = compile(term);
+  switch (phase) {
+    case 1 :
+        return lowerPhase1(anf);
+    case 2 :
+        return lowerPhase2(anf);
+    case 3 :
+        return lowerPhase3(anf);
+    case 4 :
+        return lowerPhase4(anf);
+    default:
+      return PervasivesU.failwith("Unsupported LLVM lowering phase");
+  }
+}
+
 var Compiler = {
-  compile: compile
+  compile: compile,
+  compileToLLVM: compileToLLVM
 };
 
 var testLambda = {
@@ -2468,6 +2485,115 @@ console.log("ANF:", printANF(testNestedIf));
 
 console.log("LLVM IR:", lowerPhase4(testNestedIf));
 
+console.log("\n=== Integrated Compiler Pipeline Tests ===");
+
+var testPipelineArith = {
+  TAG: "Bop",
+  _0: "Plus",
+  _1: {
+    TAG: "Int",
+    _0: 10
+  },
+  _2: {
+    TAG: "Int",
+    _0: 5
+  }
+};
+
+console.log("\n--- Test 15: Complete pipeline - arithmetic ---");
+
+console.log("Original:", printLam(testPipelineArith));
+
+console.log("LLVM IR (Phase 1):", compileToLLVM(testPipelineArith, 1));
+
+var testPipelineFunc = {
+  TAG: "App",
+  _0: {
+    TAG: "Lam",
+    _0: "x",
+    _1: {
+      TAG: "Bop",
+      _0: "Plus",
+      _1: {
+        TAG: "Var",
+        _0: "x"
+      },
+      _2: {
+        TAG: "Int",
+        _0: 1
+      }
+    }
+  },
+  _1: {
+    TAG: "Int",
+    _0: 42
+  }
+};
+
+console.log("\n--- Test 16: Complete pipeline - function call ---");
+
+console.log("Original:", printLam(testPipelineFunc));
+
+try {
+  console.log("LLVM IR (Phase 2):", compileToLLVM(testPipelineFunc, 2));
+}
+catch (raw_msg$2){
+  var msg$2 = Caml_js_exceptions.internalToOCamlException(raw_msg$2);
+  if (msg$2.RE_EXN_ID === "Failure") {
+    console.log("Expected complexity:", msg$2._1);
+  } else {
+    console.log("Unexpected error");
+  }
+}
+
+var testPipelineIf = {
+  TAG: "If",
+  _0: {
+    TAG: "Int",
+    _0: 1
+  },
+  _1: {
+    TAG: "Bop",
+    _0: "Plus",
+    _1: {
+      TAG: "Int",
+      _0: 10
+    },
+    _2: {
+      TAG: "Int",
+      _0: 5
+    }
+  },
+  _2: {
+    TAG: "Bop",
+    _0: "Minus",
+    _1: {
+      TAG: "Int",
+      _0: 20
+    },
+    _2: {
+      TAG: "Int",
+      _0: 3
+    }
+  }
+};
+
+console.log("\n--- Test 17: Complete pipeline - conditional ---");
+
+console.log("Original:", printLam(testPipelineIf));
+
+try {
+  console.log("LLVM IR (Phase 4):", compileToLLVM(testPipelineIf, 4));
+}
+catch (raw_msg$3){
+  var msg$3 = Caml_js_exceptions.internalToOCamlException(raw_msg$3);
+  if (msg$3.RE_EXN_ID === "Failure") {
+    console.log("Expected complexity:", msg$3._1);
+  } else {
+    console.log("Unexpected error");
+  }
+}
+
 export {
   Lam ,
   ANF ,
@@ -2537,5 +2663,8 @@ export {
   testSimpleIf ,
   testIfWithComputation ,
   testNestedIf ,
+  testPipelineArith ,
+  testPipelineFunc ,
+  testPipelineIf ,
 }
 /* rename Not a pure module */
