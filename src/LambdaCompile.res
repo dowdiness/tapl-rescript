@@ -466,6 +466,81 @@ module LLVMLowering = {
     | AtomGlob(x) => `@${x}`
     }
   }
+
+  // Phase 2: Function definitions and calls
+  let lowerPhase2 = (anf: ANF.t): string => {
+    let functions = ref(list{})
+    let mainInstructions = ref(list{})
+
+    let rec extractFunctions = (t: ANF.t) => {
+      switch t {
+      | Fun(f, params, body, cont) => {
+          // Generate function definition
+          let paramList = params->List.map(p => `i64 %${p}`)->List.toArray->Array.joinWith(", ")
+          let bodyInstructions = ref(list{})
+
+          let rec generateBody = (bodyTerm: ANF.t) => {
+            switch bodyTerm {
+            | Halt(AtomInt(n)) =>
+                bodyInstructions := list{`ret i64 ${Int.toString(n)}`, ...bodyInstructions.contents}
+            | Halt(AtomVar(x)) =>
+                bodyInstructions := list{`ret i64 %${x}`, ...bodyInstructions.contents}
+            | Bop(r, Plus, x, y, e) => {
+                bodyInstructions := list{`%${r} = add i64 ${atomToString(x)}, ${atomToString(y)}`, ...bodyInstructions.contents}
+                generateBody(e)
+              }
+            | Bop(r, Minus, x, y, e) => {
+                bodyInstructions := list{`%${r} = sub i64 ${atomToString(x)}, ${atomToString(y)}`, ...bodyInstructions.contents}
+                generateBody(e)
+              }
+            | _ => failwith("Phase 2: Unsupported construct in function body")
+            }
+          }
+
+          generateBody(body)
+
+          let bodyStr = bodyInstructions.contents->List.reverse->List.toArray->Array.joinWith("\n  ")
+          let funcDef = `define i64 @${f}(${paramList}) {\nentry:\n  ${bodyStr}\n}`
+
+          functions := list{funcDef, ...functions.contents}
+          extractFunctions(cont)
+        }
+      | Halt(AtomVar(x)) => {
+          // Variable reference - could be function call result or function reference
+          mainInstructions := list{`ret i64 %${x}`, ...mainInstructions.contents}
+        }
+      | Halt(AtomInt(n)) =>
+          mainInstructions := list{`ret i64 ${Int.toString(n)}`, ...mainInstructions.contents}
+      | App(r, f, args, e) => {
+          // Simple direct function call (Phase 2 - no closures yet)
+          let argList = args->List.map(atomToString)->List.toArray->Array.joinWith(", ")
+          mainInstructions := list{`%${r} = call i64 @${f}(${argList})`, ...mainInstructions.contents}
+          extractFunctions(e)
+        }
+      | Bop(r, Plus, x, y, e) => {
+          mainInstructions := list{`%${r} = add i64 ${atomToString(x)}, ${atomToString(y)}`, ...mainInstructions.contents}
+          extractFunctions(e)
+        }
+      | Bop(r, Minus, x, y, e) => {
+          mainInstructions := list{`%${r} = sub i64 ${atomToString(x)}, ${atomToString(y)}`, ...mainInstructions.contents}
+          extractFunctions(e)
+        }
+      | _ => failwith("Phase 2: Unsupported ANF construct")
+      }
+    }
+
+    extractFunctions(anf)
+
+    let functionsStr = functions.contents->List.reverse->List.toArray->Array.joinWith("\n\n")
+    let mainBody = mainInstructions.contents->List.reverse->List.toArray->Array.joinWith("\n  ")
+    let mainFunc = `define i64 @main() {\nentry:\n  ${mainBody}\n}`
+
+    if List.length(functions.contents) > 0 {
+      `${functionsStr}\n\n${mainFunc}`
+    } else {
+      mainFunc
+    }
+  }
 }
 
 module Compiler = {
@@ -679,5 +754,41 @@ try {
   Console.log2("LLVM IR:", LLVMLowering.lowerPhase1(hoistedBop))
 } catch {
 | Failure(msg) => Console.log2("Expected failure:", msg)
+| _ => Console.log("Unexpected error")
+}
+
+Console.log("\n=== LLVMlite Lowering Phase 2 Tests ===")
+
+// Test 5: Simple function definition and reference
+let testSimpleFunc = ANF.Fun("identity", list{"x"}, ANF.Halt(ANF.AtomVar("x")), ANF.Halt(ANF.AtomVar("identity")))
+Console.log("--- Test 5: Simple function definition ---")
+Console.log2("ANF:", Print.printANF(testSimpleFunc))
+Console.log2("LLVM IR:", LLVMLowering.lowerPhase2(testSimpleFunc))
+
+// Test 6: Function with arithmetic in body
+let testFuncWithArith = ANF.Fun("addOne", list{"x"},
+  ANF.Bop("r", Plus, ANF.AtomVar("x"), ANF.AtomInt(1), ANF.Halt(ANF.AtomVar("r"))),
+  ANF.Halt(ANF.AtomVar("addOne"))
+)
+Console.log("\n--- Test 6: Function with arithmetic ---")
+Console.log2("ANF:", Print.printANF(testFuncWithArith))
+Console.log2("LLVM IR:", LLVMLowering.lowerPhase2(testFuncWithArith))
+
+// Test 7: Function call (simplified - without closures)
+let testFuncCall = ANF.Fun("double", list{"x"},
+  ANF.Bop("r", Plus, ANF.AtomVar("x"), ANF.AtomVar("x"), ANF.Halt(ANF.AtomVar("r"))),
+  ANF.App("result", "double", list{ANF.AtomInt(21)}, ANF.Halt(ANF.AtomVar("result")))
+)
+Console.log("\n--- Test 7: Function call ---")
+Console.log2("ANF:", Print.printANF(testFuncCall))
+Console.log2("LLVM IR:", LLVMLowering.lowerPhase2(testFuncCall))
+
+// Test 8: Test with existing identity function (ANF only)
+Console.log("\n--- Test 8: ANF identity function test ---")
+Console.log2("ANF:", Print.printANF(anfLambda))
+try {
+  Console.log2("LLVM IR:", LLVMLowering.lowerPhase2(anfLambda))
+} catch {
+| Failure(msg) => Console.log2("Expected failure (complex constructs):", msg)
 | _ => Console.log("Unexpected error")
 }

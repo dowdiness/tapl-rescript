@@ -894,9 +894,142 @@ function atomToString(atom) {
   }
 }
 
+function lowerPhase2(anf) {
+  var functions = {
+    contents: /* [] */0
+  };
+  var mainInstructions = {
+    contents: /* [] */0
+  };
+  var extractFunctions = function (_t) {
+    while(true) {
+      var t = _t;
+      switch (t.TAG) {
+        case "Halt" :
+            var x = t._0;
+            switch (x.TAG) {
+              case "AtomInt" :
+                  mainInstructions.contents = {
+                    hd: "ret i64 " + x._0.toString(),
+                    tl: mainInstructions.contents
+                  };
+                  return ;
+              case "AtomVar" :
+                  mainInstructions.contents = {
+                    hd: "ret i64 %" + x._0,
+                    tl: mainInstructions.contents
+                  };
+                  return ;
+              case "AtomGlob" :
+                  return PervasivesU.failwith("Phase 2: Unsupported ANF construct");
+              
+            }
+        case "Fun" :
+            var paramList = Core__List.toArray(Core__List.map(t._1, (function (p) {
+                          return "i64 %" + p;
+                        }))).join(", ");
+            var bodyInstructions = {
+              contents: /* [] */0
+            };
+            var generateBody = (function(bodyInstructions){
+            return function generateBody(_bodyTerm) {
+              while(true) {
+                var bodyTerm = _bodyTerm;
+                switch (bodyTerm.TAG) {
+                  case "Halt" :
+                      var n = bodyTerm._0;
+                      switch (n.TAG) {
+                        case "AtomInt" :
+                            bodyInstructions.contents = {
+                              hd: "ret i64 " + n._0.toString(),
+                              tl: bodyInstructions.contents
+                            };
+                            return ;
+                        case "AtomVar" :
+                            bodyInstructions.contents = {
+                              hd: "ret i64 %" + n._0,
+                              tl: bodyInstructions.contents
+                            };
+                            return ;
+                        case "AtomGlob" :
+                            return PervasivesU.failwith("Phase 2: Unsupported construct in function body");
+                        
+                      }
+                  case "Bop" :
+                      var r = bodyTerm._0;
+                      if (bodyTerm._1 === "Plus") {
+                        bodyInstructions.contents = {
+                          hd: "%" + r + " = add i64 " + atomToString(bodyTerm._2) + ", " + atomToString(bodyTerm._3),
+                          tl: bodyInstructions.contents
+                        };
+                        _bodyTerm = bodyTerm._4;
+                        continue ;
+                      }
+                      bodyInstructions.contents = {
+                        hd: "%" + r + " = sub i64 " + atomToString(bodyTerm._2) + ", " + atomToString(bodyTerm._3),
+                        tl: bodyInstructions.contents
+                      };
+                      _bodyTerm = bodyTerm._4;
+                      continue ;
+                  default:
+                    return PervasivesU.failwith("Phase 2: Unsupported construct in function body");
+                }
+              };
+            }
+            }(bodyInstructions));
+            generateBody(t._2);
+            var bodyStr = Core__List.toArray(Core__List.reverse(bodyInstructions.contents)).join("\n  ");
+            var funcDef = "define i64 @" + t._0 + "(" + paramList + ") {\nentry:\n  " + bodyStr + "\n}";
+            functions.contents = {
+              hd: funcDef,
+              tl: functions.contents
+            };
+            _t = t._3;
+            continue ;
+        case "App" :
+            var argList = Core__List.toArray(Core__List.map(t._2, atomToString)).join(", ");
+            mainInstructions.contents = {
+              hd: "%" + t._0 + " = call i64 @" + t._1 + "(" + argList + ")",
+              tl: mainInstructions.contents
+            };
+            _t = t._3;
+            continue ;
+        case "Bop" :
+            var r = t._0;
+            if (t._1 === "Plus") {
+              mainInstructions.contents = {
+                hd: "%" + r + " = add i64 " + atomToString(t._2) + ", " + atomToString(t._3),
+                tl: mainInstructions.contents
+              };
+              _t = t._4;
+              continue ;
+            }
+            mainInstructions.contents = {
+              hd: "%" + r + " = sub i64 " + atomToString(t._2) + ", " + atomToString(t._3),
+              tl: mainInstructions.contents
+            };
+            _t = t._4;
+            continue ;
+        default:
+          return PervasivesU.failwith("Phase 2: Unsupported ANF construct");
+      }
+    };
+  };
+  extractFunctions(anf);
+  var functionsStr = Core__List.toArray(Core__List.reverse(functions.contents)).join("\n\n");
+  var mainBody = Core__List.toArray(Core__List.reverse(mainInstructions.contents)).join("\n  ");
+  var mainFunc = "define i64 @main() {\nentry:\n  " + mainBody + "\n}";
+  if (Core__List.length(functions.contents) > 0) {
+    return functionsStr + "\n\n" + mainFunc;
+  } else {
+    return mainFunc;
+  }
+}
+
 var LLVMLowering = {
   lowerPhase1: lowerPhase1,
-  atomToString: atomToString
+  atomToString: atomToString,
+  lowerPhase2: lowerPhase2
 };
 
 function compile(term) {
@@ -1427,6 +1560,149 @@ catch (raw_msg){
   }
 }
 
+console.log("\n=== LLVMlite Lowering Phase 2 Tests ===");
+
+var testSimpleFunc = {
+  TAG: "Fun",
+  _0: "identity",
+  _1: {
+    hd: "x",
+    tl: /* [] */0
+  },
+  _2: {
+    TAG: "Halt",
+    _0: {
+      TAG: "AtomVar",
+      _0: "x"
+    }
+  },
+  _3: {
+    TAG: "Halt",
+    _0: {
+      TAG: "AtomVar",
+      _0: "identity"
+    }
+  }
+};
+
+console.log("--- Test 5: Simple function definition ---");
+
+console.log("ANF:", printANF(testSimpleFunc));
+
+console.log("LLVM IR:", lowerPhase2(testSimpleFunc));
+
+var testFuncWithArith = {
+  TAG: "Fun",
+  _0: "addOne",
+  _1: {
+    hd: "x",
+    tl: /* [] */0
+  },
+  _2: {
+    TAG: "Bop",
+    _0: "r",
+    _1: "Plus",
+    _2: {
+      TAG: "AtomVar",
+      _0: "x"
+    },
+    _3: {
+      TAG: "AtomInt",
+      _0: 1
+    },
+    _4: {
+      TAG: "Halt",
+      _0: {
+        TAG: "AtomVar",
+        _0: "r"
+      }
+    }
+  },
+  _3: {
+    TAG: "Halt",
+    _0: {
+      TAG: "AtomVar",
+      _0: "addOne"
+    }
+  }
+};
+
+console.log("\n--- Test 6: Function with arithmetic ---");
+
+console.log("ANF:", printANF(testFuncWithArith));
+
+console.log("LLVM IR:", lowerPhase2(testFuncWithArith));
+
+var testFuncCall = {
+  TAG: "Fun",
+  _0: "double",
+  _1: {
+    hd: "x",
+    tl: /* [] */0
+  },
+  _2: {
+    TAG: "Bop",
+    _0: "r",
+    _1: "Plus",
+    _2: {
+      TAG: "AtomVar",
+      _0: "x"
+    },
+    _3: {
+      TAG: "AtomVar",
+      _0: "x"
+    },
+    _4: {
+      TAG: "Halt",
+      _0: {
+        TAG: "AtomVar",
+        _0: "r"
+      }
+    }
+  },
+  _3: {
+    TAG: "App",
+    _0: "result",
+    _1: "double",
+    _2: {
+      hd: {
+        TAG: "AtomInt",
+        _0: 21
+      },
+      tl: /* [] */0
+    },
+    _3: {
+      TAG: "Halt",
+      _0: {
+        TAG: "AtomVar",
+        _0: "result"
+      }
+    }
+  }
+};
+
+console.log("\n--- Test 7: Function call ---");
+
+console.log("ANF:", printANF(testFuncCall));
+
+console.log("LLVM IR:", lowerPhase2(testFuncCall));
+
+console.log("\n--- Test 8: ANF identity function test ---");
+
+console.log("ANF:", printANF(anfLambda));
+
+try {
+  console.log("LLVM IR:", lowerPhase2(anfLambda));
+}
+catch (raw_msg$1){
+  var msg$1 = Caml_js_exceptions.internalToOCamlException(raw_msg$1);
+  if (msg$1.RE_EXN_ID === "Failure") {
+    console.log("Expected failure (complex constructs):", msg$1._1);
+  } else {
+    console.log("Unexpected error");
+  }
+}
+
 export {
   Lam ,
   ANF ,
@@ -1487,5 +1763,8 @@ export {
   testSimpleInt ,
   testAddInts ,
   testSubInts ,
+  testSimpleFunc ,
+  testFuncWithArith ,
+  testFuncCall ,
 }
 /* rename Not a pure module */
