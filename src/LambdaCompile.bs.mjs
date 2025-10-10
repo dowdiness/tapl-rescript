@@ -1386,7 +1386,6 @@ function lowerPhase4(anf) {
                   case "If" :
                       var thenLabel = getNextLabel("then");
                       var elseLabel = getNextLabel("else");
-                      var mergeLabel = getNextLabel("merge");
                       bodyInstructions.contents = {
                         hd: "%cond = icmp ne i64 " + atomToString(bodyTerm._0) + ", 0",
                         tl: bodyInstructions.contents
@@ -1404,12 +1403,8 @@ function lowerPhase4(anf) {
                         hd: elseLabel + ":",
                         tl: bodyInstructions.contents
                       };
-                      generateBody(bodyTerm._2);
-                      bodyInstructions.contents = {
-                        hd: mergeLabel + ":",
-                        tl: bodyInstructions.contents
-                      };
-                      return ;
+                      _bodyTerm = bodyTerm._2;
+                      continue ;
                   default:
                     return PervasivesU.failwith("Phase 4: Unsupported construct in function body");
                 }
@@ -1444,7 +1439,6 @@ function lowerPhase4(anf) {
         case "If" :
             var thenLabel = getNextLabel("then");
             var elseLabel = getNextLabel("else");
-            var mergeLabel = getNextLabel("merge");
             mainInstructions.contents = {
               hd: "%cond = icmp ne i64 " + atomToString(t._0) + ", 0",
               tl: mainInstructions.contents
@@ -1462,12 +1456,8 @@ function lowerPhase4(anf) {
               hd: elseLabel + ":",
               tl: mainInstructions.contents
             };
-            extractFunctions(t._2);
-            mainInstructions.contents = {
-              hd: mergeLabel + ":",
-              tl: mainInstructions.contents
-            };
-            return ;
+            _t = t._2;
+            continue ;
         default:
           return PervasivesU.failwith("Phase 4: Unsupported ANF construct");
       }

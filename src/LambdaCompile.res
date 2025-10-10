@@ -734,7 +734,6 @@ module LLVMLowering = {
             | If(cond, thenBranch, elseBranch) => {
                 let thenLabel = getNextLabel("then")
                 let elseLabel = getNextLabel("else")
-                let mergeLabel = getNextLabel("merge")
 
                 // Generate condition check
                 bodyInstructions := list{`%cond = icmp ne i64 ${atomToString(cond)}, 0`, ...bodyInstructions.contents}
@@ -743,15 +742,10 @@ module LLVMLowering = {
                 // Generate then branch
                 bodyInstructions := list{`${thenLabel}:`, ...bodyInstructions.contents}
                 generateBody(thenBranch)
-                // Don't add br after ret instruction
 
                 // Generate else branch
                 bodyInstructions := list{`${elseLabel}:`, ...bodyInstructions.contents}
                 generateBody(elseBranch)
-                // Don't add br after ret instruction
-
-                // Merge point (may not be reachable if both branches return)
-                bodyInstructions := list{`${mergeLabel}:`, ...bodyInstructions.contents}
               }
             | _ => failwith("Phase 4: Unsupported construct in function body")
             }
@@ -783,7 +777,6 @@ module LLVMLowering = {
       | If(cond, thenBranch, elseBranch) => {
           let thenLabel = getNextLabel("then")
           let elseLabel = getNextLabel("else")
-          let mergeLabel = getNextLabel("merge")
 
           // Generate condition check
           mainInstructions := list{`%cond = icmp ne i64 ${atomToString(cond)}, 0`, ...mainInstructions.contents}
@@ -792,15 +785,10 @@ module LLVMLowering = {
           // Generate then branch
           mainInstructions := list{`${thenLabel}:`, ...mainInstructions.contents}
           extractFunctions(thenBranch)
-          // Don't add br after ret instruction
 
           // Generate else branch
           mainInstructions := list{`${elseLabel}:`, ...mainInstructions.contents}
           extractFunctions(elseBranch)
-          // Don't add br after ret instruction
-
-          // Merge point (may not be reachable if both branches return)
-          mainInstructions := list{`${mergeLabel}:`, ...mainInstructions.contents}
         }
       | Bop(r, Plus, x, y, e) => {
           mainInstructions := list{`%${r} = add i64 ${atomToString(x)}, ${atomToString(y)}`, ...mainInstructions.contents}
