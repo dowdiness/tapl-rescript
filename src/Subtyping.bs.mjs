@@ -122,12 +122,10 @@ function typeOf(ctx, t) {
         var match$1 = typeOf(ctx, t2);
         if (match !== undefined && typeof match === "object" && match.TAG === "TyArr" && match$1 !== undefined) {
           var tyT11 = match._0;
-          if (!subtype(match$1, tyT11)) {
-            console.log(match$1, tyT11);
-          }
           if (subtype(match$1, tyT11)) {
             return match._1;
           } else {
+            console.log(match$1, tyT11);
             return ;
           }
         }
@@ -171,9 +169,18 @@ function typeOf(ctx, t) {
         }
     case "If" :
         var match$3 = typeOf(ctx, t._0);
+        if (match$3 === undefined) {
+          return ;
+        }
+        if (typeof match$3 === "object") {
+          return ;
+        }
+        if (match$3 !== "TyBool") {
+          return ;
+        }
         var match$4 = typeOf(ctx, t._1);
         var match$5 = typeOf(ctx, t._2);
-        if (match$3 !== undefined && typeof match$3 !== "object" && match$3 === "TyBool" && match$4 !== undefined && match$5 !== undefined && Caml_obj.equal(match$4, match$5)) {
+        if (match$4 !== undefined && match$5 !== undefined && Caml_obj.equal(match$4, match$5)) {
           return match$4;
         } else {
           return ;
