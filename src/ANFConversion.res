@@ -143,7 +143,7 @@ let toANF = (expr) => {
 }
 
 // Pretty printing functions
-let rec atomToString = (atom) => {
+let atomToString = (atom) => {
   switch atom {
     | AInt(n) => Int.toString(n)
     | AVar(x) => x
