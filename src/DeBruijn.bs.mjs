@@ -136,7 +136,7 @@ function isVal(_ctx, t) {
   }
 }
 
-var NoRuleApplies = /* @__PURE__ */Caml_exceptions.create("DeBrujin.NoRuleApplies");
+var NoRuleApplies = /* @__PURE__ */Caml_exceptions.create("DeBruijn.NoRuleApplies");
 
 function eval1(ctx, t) {
   switch (t.TAG) {
