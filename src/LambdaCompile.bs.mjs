@@ -468,6 +468,193 @@ var ClosureConversion = {
   convert: go$2
 };
 
+function collectBindings(t) {
+  switch (t.TAG) {
+    case "Fun" :
+        var match = collectBindings(t._2);
+        var match$1 = collectBindings(t._3);
+        var funBinding_0 = t._0;
+        var funBinding_1 = t._1;
+        var funBinding_2 = match[1];
+        var funBinding = {
+          TAG: "FunBinding",
+          _0: funBinding_0,
+          _1: funBinding_1,
+          _2: funBinding_2
+        };
+        return [
+                {
+                  hd: funBinding,
+                  tl: Core__List.concat(match[0], match$1[0])
+                },
+                match$1[1]
+              ];
+    case "Join" :
+        var match$2 = collectBindings(t._2);
+        var match$3 = collectBindings(t._3);
+        return [
+                Core__List.concat(match$2[0], match$3[0]),
+                {
+                  TAG: "Join",
+                  _0: t._0,
+                  _1: t._1,
+                  _2: match$2[1],
+                  _3: match$3[1]
+                }
+              ];
+    case "Halt" :
+    case "Jump" :
+        return [
+                /* [] */0,
+                t
+              ];
+    case "App" :
+        var match$4 = collectBindings(t._3);
+        return [
+                match$4[0],
+                {
+                  TAG: "App",
+                  _0: t._0,
+                  _1: t._1,
+                  _2: t._2,
+                  _3: match$4[1]
+                }
+              ];
+    case "Bop" :
+        var r = t._0;
+        var match$5 = collectBindings(t._4);
+        var varBinding_1 = {
+          TAG: "AtomVar",
+          _0: r
+        };
+        var varBinding = {
+          TAG: "VarBinding",
+          _0: r,
+          _1: varBinding_1
+        };
+        return [
+                {
+                  hd: varBinding,
+                  tl: match$5[0]
+                },
+                {
+                  TAG: "Bop",
+                  _0: r,
+                  _1: t._1,
+                  _2: t._2,
+                  _3: t._3,
+                  _4: match$5[1]
+                }
+              ];
+    case "If" :
+        var match$6 = collectBindings(t._1);
+        var match$7 = collectBindings(t._2);
+        return [
+                Core__List.concat(match$6[0], match$7[0]),
+                {
+                  TAG: "If",
+                  _0: t._0,
+                  _1: match$6[1],
+                  _2: match$7[1]
+                }
+              ];
+    case "Tuple" :
+        var match$8 = collectBindings(t._2);
+        var tupleBinding_0 = t._0;
+        var tupleBinding_1 = t._1;
+        var tupleBinding = {
+          TAG: "TupleBinding",
+          _0: tupleBinding_0,
+          _1: tupleBinding_1
+        };
+        return [
+                {
+                  hd: tupleBinding,
+                  tl: match$8[0]
+                },
+                match$8[1]
+              ];
+    case "Proj" :
+        var match$9 = collectBindings(t._3);
+        var varBinding_0 = t._0;
+        var varBinding_1$1 = {
+          TAG: "AtomVar",
+          _0: t._1
+        };
+        var varBinding$1 = {
+          TAG: "VarBinding",
+          _0: varBinding_0,
+          _1: varBinding_1$1
+        };
+        return [
+                {
+                  hd: varBinding$1,
+                  tl: match$9[0]
+                },
+                match$9[1]
+              ];
+    
+  }
+}
+
+function reconstructWithBindings(bindings, body) {
+  if (!bindings) {
+    return body;
+  }
+  var match = bindings.hd;
+  switch (match.TAG) {
+    case "FunBinding" :
+        var restBody = reconstructWithBindings(bindings.tl, body);
+        return {
+                TAG: "Fun",
+                _0: match._0,
+                _1: match._1,
+                _2: match._2,
+                _3: restBody
+              };
+    case "VarBinding" :
+        var restBody$1 = reconstructWithBindings(bindings.tl, body);
+        switch (match._1.TAG) {
+          case "AtomInt" :
+          case "AtomVar" :
+          case "AtomGlob" :
+              return restBody$1;
+          
+        }
+    case "TupleBinding" :
+        var restBody$2 = reconstructWithBindings(bindings.tl, body);
+        return {
+                TAG: "Tuple",
+                _0: match._0,
+                _1: match._1,
+                _2: restBody$2
+              };
+    
+  }
+}
+
+function hoist(t) {
+  var match = collectBindings(t);
+  var match$1 = Core__List.partition(match[0], (function (binding) {
+          switch (binding.TAG) {
+            case "FunBinding" :
+                return true;
+            case "VarBinding" :
+            case "TupleBinding" :
+                return false;
+            
+          }
+        }));
+  var orderedBindings = Core__List.concat(match$1[0], match$1[1]);
+  return reconstructWithBindings(orderedBindings, match[1]);
+}
+
+var Hoisting = {
+  collectBindings: collectBindings,
+  reconstructWithBindings: reconstructWithBindings,
+  hoist: hoist
+};
+
 function printAtom(atom) {
   switch (atom.TAG) {
     case "AtomInt" :
@@ -552,6 +739,14 @@ var Print = {
   printLam: printLam
 };
 
+function compile(term) {
+  return hoist(go$2(go$1(rename(term), mkHalt)));
+}
+
+var Compiler = {
+  compile: compile
+};
+
 var testLambda = {
   TAG: "Lam",
   _0: "x",
@@ -603,6 +798,184 @@ var testIf = {
   _2: {
     TAG: "Int",
     _0: 3
+  }
+};
+
+var testNested = {
+  TAG: "Lam",
+  _0: "x",
+  _1: {
+    TAG: "App",
+    _0: {
+      TAG: "Lam",
+      _0: "y",
+      _1: {
+        TAG: "App",
+        _0: {
+          TAG: "Lam",
+          _0: "z",
+          _1: {
+            TAG: "Bop",
+            _0: "Plus",
+            _1: {
+              TAG: "Var",
+              _0: "x"
+            },
+            _2: {
+              TAG: "Bop",
+              _0: "Plus",
+              _1: {
+                TAG: "Var",
+                _0: "y"
+              },
+              _2: {
+                TAG: "Var",
+                _0: "z"
+              }
+            }
+          }
+        },
+        _1: {
+          TAG: "Int",
+          _0: 3
+        }
+      }
+    },
+    _1: {
+      TAG: "Int",
+      _0: 2
+    }
+  }
+};
+
+var testCurried = {
+  TAG: "Lam",
+  _0: "x",
+  _1: {
+    TAG: "Lam",
+    _0: "y",
+    _1: {
+      TAG: "Bop",
+      _0: "Plus",
+      _1: {
+        TAG: "Var",
+        _0: "x"
+      },
+      _2: {
+        TAG: "Var",
+        _0: "y"
+      }
+    }
+  }
+};
+
+var testComplexFreeVars = {
+  TAG: "App",
+  _0: {
+    TAG: "Lam",
+    _0: "a",
+    _1: {
+      TAG: "App",
+      _0: {
+        TAG: "Lam",
+        _0: "b",
+        _1: {
+          TAG: "App",
+          _0: {
+            TAG: "Lam",
+            _0: "c",
+            _1: {
+              TAG: "Bop",
+              _0: "Plus",
+              _1: {
+                TAG: "Var",
+                _0: "a"
+              },
+              _2: {
+                TAG: "Bop",
+                _0: "Plus",
+                _1: {
+                  TAG: "Var",
+                  _0: "b"
+                },
+                _2: {
+                  TAG: "Var",
+                  _0: "c"
+                }
+              }
+            }
+          },
+          _1: {
+            TAG: "Bop",
+            _0: "Plus",
+            _1: {
+              TAG: "Var",
+              _0: "a"
+            },
+            _2: {
+              TAG: "Var",
+              _0: "b"
+            }
+          }
+        }
+      },
+      _1: {
+        TAG: "Bop",
+        _0: "Plus",
+        _1: {
+          TAG: "Var",
+          _0: "a"
+        },
+        _2: {
+          TAG: "Int",
+          _0: 1
+        }
+      }
+    }
+  },
+  _1: {
+    TAG: "Int",
+    _0: 10
+  }
+};
+
+var testConditionalNested = {
+  TAG: "If",
+  _0: {
+    TAG: "Int",
+    _0: 1
+  },
+  _1: {
+    TAG: "Lam",
+    _0: "x",
+    _1: {
+      TAG: "Bop",
+      _0: "Plus",
+      _1: {
+        TAG: "Var",
+        _0: "x"
+      },
+      _2: {
+        TAG: "Int",
+        _0: 1
+      }
+    }
+  },
+  _2: {
+    TAG: "Lam",
+    _0: "y",
+    _1: {
+      TAG: "Bop",
+      _0: "Minus",
+      _1: {
+        TAG: "Var",
+        _0: "y"
+      },
+      _2: {
+        TAG: "Int",
+        _0: 1
+      }
+    }
   }
 };
 
@@ -670,16 +1043,160 @@ console.log("Binary operation:", printANF(closureBop));
 
 console.log("If expression:", printANF(closureIf));
 
+console.log("\n=== After Hoisting (Correct Order) ===");
+
+var hoistedLambda = hoist(closureLambda);
+
+var hoistedApp = hoist(closureApp);
+
+var hoistedBop = hoist(closureBop);
+
+var hoistedIf = hoist(closureIf);
+
+console.log("Identity function:", printANF(hoistedLambda));
+
+console.log("Application:", printANF(hoistedApp));
+
+console.log("Binary operation:", printANF(hoistedBop));
+
+console.log("If expression:", printANF(hoistedIf));
+
+console.log("\n=== Complete Compilation Pipeline ===");
+
+var compiledLambda = compile(testLambda);
+
+var compiledApp = compile(testApp);
+
+var compiledBop = compile(testBop);
+
+var compiledIf = compile(testIf);
+
+console.log("Identity function:", printANF(compiledLambda));
+
+console.log("Application:", printANF(compiledApp));
+
+console.log("Binary operation:", printANF(compiledBop));
+
+console.log("If expression:", printANF(compiledIf));
+
+console.log("\n=== Complex Test Cases ===");
+
+console.log("--- Original Complex Lambda Terms ---");
+
+console.log("Nested functions:", printLam(testNested));
+
+console.log("Curried function:", printLam(testCurried));
+
+console.log("Complex free vars:", printLam(testComplexFreeVars));
+
+console.log("Conditional nested:", printLam(testConditionalNested));
+
+console.log("\n--- After Alpha Renaming ---");
+
+var renamedNested = rename(testNested);
+
+var renamedCurried = rename(testCurried);
+
+var renamedComplexFreeVars = rename(testComplexFreeVars);
+
+var renamedConditionalNested = rename(testConditionalNested);
+
+console.log("Nested functions:", printLam(renamedNested));
+
+console.log("Curried function:", printLam(renamedCurried));
+
+console.log("Complex free vars:", printLam(renamedComplexFreeVars));
+
+console.log("Conditional nested:", printLam(renamedConditionalNested));
+
+console.log("\n--- After ANF Conversion ---");
+
+var anfNested = go$1(renamedNested, mkHalt);
+
+var anfCurried = go$1(renamedCurried, mkHalt);
+
+var anfComplexFreeVars = go$1(renamedComplexFreeVars, mkHalt);
+
+var anfConditionalNested = go$1(renamedConditionalNested, mkHalt);
+
+console.log("Nested functions:", printANF(anfNested));
+
+console.log("Curried function:", printANF(anfCurried));
+
+console.log("Complex free vars:", printANF(anfComplexFreeVars));
+
+console.log("Conditional nested:", printANF(anfConditionalNested));
+
+console.log("\n--- After Closure Conversion (Correct Order) ---");
+
+var closureNested = go$2(anfNested);
+
+var closureCurried = go$2(anfCurried);
+
+var closureComplexFreeVars = go$2(anfComplexFreeVars);
+
+var closureConditionalNested = go$2(anfConditionalNested);
+
+console.log("Nested functions:", printANF(closureNested));
+
+console.log("Curried function:", printANF(closureCurried));
+
+console.log("Complex free vars:", printANF(closureComplexFreeVars));
+
+console.log("Conditional nested:", printANF(closureConditionalNested));
+
+console.log("\n--- After Hoisting (Correct Order) ---");
+
+var hoistedNested = hoist(closureNested);
+
+var hoistedCurried = hoist(closureCurried);
+
+var hoistedComplexFreeVars = hoist(closureComplexFreeVars);
+
+var hoistedConditionalNested = hoist(closureConditionalNested);
+
+console.log("Nested functions:", printANF(hoistedNested));
+
+console.log("Curried function:", printANF(hoistedCurried));
+
+console.log("Complex free vars:", printANF(hoistedComplexFreeVars));
+
+console.log("Conditional nested:", printANF(hoistedConditionalNested));
+
+console.log("\n--- Complete Compilation Pipeline (Correct Order) ---");
+
+var finalNested = compile(testNested);
+
+var finalCurried = compile(testCurried);
+
+var finalComplexFreeVars = compile(testComplexFreeVars);
+
+var finalConditionalNested = compile(testConditionalNested);
+
+console.log("Nested functions:", printANF(finalNested));
+
+console.log("Curried function:", printANF(finalCurried));
+
+console.log("Complex free vars:", printANF(finalComplexFreeVars));
+
+console.log("Conditional nested:", printANF(finalConditionalNested));
+
 export {
   Lam ,
   ANF ,
   FreeVars ,
   ClosureConversion ,
+  Hoisting ,
   Print ,
+  Compiler ,
   testLambda ,
   testApp ,
   testBop ,
   testIf ,
+  testNested ,
+  testCurried ,
+  testComplexFreeVars ,
+  testConditionalNested ,
   renamedLambda ,
   renamedApp ,
   renamedBop ,
@@ -692,5 +1209,33 @@ export {
   closureApp ,
   closureBop ,
   closureIf ,
+  hoistedLambda ,
+  hoistedApp ,
+  hoistedBop ,
+  hoistedIf ,
+  compiledLambda ,
+  compiledApp ,
+  compiledBop ,
+  compiledIf ,
+  renamedNested ,
+  renamedCurried ,
+  renamedComplexFreeVars ,
+  renamedConditionalNested ,
+  anfNested ,
+  anfCurried ,
+  anfComplexFreeVars ,
+  anfConditionalNested ,
+  closureNested ,
+  closureCurried ,
+  closureComplexFreeVars ,
+  closureConditionalNested ,
+  hoistedNested ,
+  hoistedCurried ,
+  hoistedComplexFreeVars ,
+  hoistedConditionalNested ,
+  finalNested ,
+  finalCurried ,
+  finalComplexFreeVars ,
+  finalConditionalNested ,
 }
 /* rename Not a pure module */

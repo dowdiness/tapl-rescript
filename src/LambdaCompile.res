@@ -270,6 +270,91 @@ module ClosureConversion = {
   }
 }
 
+// Hoisting transformation
+module Hoisting = {
+  // Collect all function declarations and variable bindings
+  type binding =
+    | FunBinding(varName, list<varName>, ANF.t)
+    | VarBinding(varName, ANF.atom)
+    | TupleBinding(varName, list<ANF.atom>)
+
+  let rec collectBindings = (t: ANF.t): (list<binding>, ANF.t) => {
+    switch t {
+    | Fun(f, xs, e, e') => {
+        let (bindings1, hoistedE) = collectBindings(e)
+        let (bindings2, hoistedE') = collectBindings(e')
+        let funBinding = FunBinding(f, xs, hoistedE)
+        (list{funBinding, ...List.concat(bindings1, bindings2)}, hoistedE')
+      }
+    | App(r, f, vs, e) => {
+        let (bindings, hoistedE) = collectBindings(e)
+        (bindings, ANF.App(r, f, vs, hoistedE))
+      }
+    | Bop(r, op, x, y, e) => {
+        let (bindings, hoistedE) = collectBindings(e)
+        let varBinding = VarBinding(r, ANF.AtomVar(r))
+        (list{varBinding, ...bindings}, ANF.Bop(r, op, x, y, hoistedE))
+      }
+    | Tuple(r, vs, e) => {
+        let (bindings, hoistedE) = collectBindings(e)
+        let tupleBinding = TupleBinding(r, vs)
+        (list{tupleBinding, ...bindings}, hoistedE)
+      }
+    | Proj(r, x, _i, e) => {
+        let (bindings, hoistedE) = collectBindings(e)
+        let varBinding = VarBinding(r, ANF.AtomVar(x))
+        (list{varBinding, ...bindings}, hoistedE)
+      }
+    | Join(j, p, e, e') => {
+        let (bindings1, hoistedE) = collectBindings(e)
+        let (bindings2, hoistedE') = collectBindings(e')
+        (List.concat(bindings1, bindings2), ANF.Join(j, p, hoistedE, hoistedE'))
+      }
+    | If(atom, t, f) => {
+        let (bindings1, hoistedT) = collectBindings(t)
+        let (bindings2, hoistedF) = collectBindings(f)
+        (List.concat(bindings1, bindings2), ANF.If(atom, hoistedT, hoistedF))
+      }
+    | Halt(_) | Jump(_, _) => (list{}, t)
+    }
+  }
+
+  let rec reconstructWithBindings = (bindings: list<binding>, body: ANF.t): ANF.t => {
+    switch bindings {
+    | list{} => body
+    | list{FunBinding(f, xs, e), ...rest} => {
+        let restBody = reconstructWithBindings(rest, body)
+        ANF.Fun(f, xs, e, restBody)
+      }
+    | list{VarBinding(_r, atom), ...rest} => {
+        let restBody = reconstructWithBindings(rest, body)
+        // For variable bindings, we need to create appropriate ANF constructs
+        switch atom {
+        | ANF.AtomVar(_) => restBody // Skip simple variable bindings
+        | _ => restBody
+        }
+      }
+    | list{TupleBinding(r, vs), ...rest} => {
+        let restBody = reconstructWithBindings(rest, body)
+        ANF.Tuple(r, vs, restBody)
+      }
+    }
+  }
+
+  let hoist = (t: ANF.t): ANF.t => {
+    let (bindings, body) = collectBindings(t)
+    // Group bindings by type - functions first, then variables
+    let (funBindings, otherBindings) = List.partition(bindings, binding =>
+      switch binding {
+      | FunBinding(_, _, _) => true
+      | _ => false
+      }
+    )
+    let orderedBindings = List.concat(funBindings, otherBindings)
+    reconstructWithBindings(orderedBindings, body)
+  }
+}
+
 // Pretty printing functions
 module Print = {
   let printAtom = (atom: ANF.atom): string => {
@@ -321,7 +406,7 @@ module Print = {
 
 module Compiler = {
   let compile = (term: Lam.t) => {
-    term->Lam.rename->ANF.convert->ClosureConversion.convert
+    term->Lam.rename->ANF.convert->ClosureConversion.convert->Hoisting.hoist
   }
 }
 
@@ -330,6 +415,55 @@ let testLambda = Lam.Lam("x", Lam.Var("x"))
 let testApp = Lam.App(Lam.Lam("x", Lam.Var("x")), Lam.Int(42))
 let testBop = Lam.Bop(Plus, Lam.Int(3), Lam.Int(4))
 let testIf = Lam.If(Lam.Int(1), Lam.Int(2), Lam.Int(3))
+
+// Complex test cases to reveal potential ordering issues
+// Test case 1: Nested functions with free variables
+let testNested = Lam.Lam("x",
+  Lam.App(
+    Lam.Lam("y",
+      Lam.App(
+        Lam.Lam("z", Lam.Bop(Plus, Lam.Var("x"), Lam.Bop(Plus, Lam.Var("y"), Lam.Var("z")))),
+        Lam.Int(3)
+      )
+    ),
+    Lam.Int(2)
+  )
+)
+
+// Test case 2: Function returning another function (currying)
+let testCurried = Lam.Lam("x",
+  Lam.Lam("y",
+    Lam.Bop(Plus, Lam.Var("x"), Lam.Var("y"))
+  )
+)
+
+// Test case 3: Complex free variable dependencies
+let testComplexFreeVars = Lam.App(
+  Lam.Lam("a",
+    Lam.App(
+      Lam.Lam("b",
+        Lam.App(
+          Lam.Lam("c",
+            Lam.Bop(Plus,
+              Lam.Var("a"),
+              Lam.Bop(Plus, Lam.Var("b"), Lam.Var("c"))
+            )
+          ),
+          Lam.Bop(Plus, Lam.Var("a"), Lam.Var("b"))
+        )
+      ),
+      Lam.Bop(Plus, Lam.Var("a"), Lam.Int(1))
+    )
+  ),
+  Lam.Int(10)
+)
+
+// Test case 4: Conditional with nested functions
+let testConditionalNested = Lam.If(
+  Lam.Int(1),
+  Lam.Lam("x", Lam.Bop(Plus, Lam.Var("x"), Lam.Int(1))),
+  Lam.Lam("y", Lam.Bop(Minus, Lam.Var("y"), Lam.Int(1)))
+)
 
 Console.log("=== Original Lambda Terms ===")
 Console.log2("Identity function:", Print.printLam(testLambda))
@@ -369,3 +503,87 @@ Console.log2("Identity function:", Print.printANF(closureLambda))
 Console.log2("Application:", Print.printANF(closureApp))
 Console.log2("Binary operation:", Print.printANF(closureBop))
 Console.log2("If expression:", Print.printANF(closureIf))
+
+Console.log("\n=== After Hoisting (Correct Order) ===")
+let hoistedLambda = Hoisting.hoist(closureLambda)
+let hoistedApp = Hoisting.hoist(closureApp)
+let hoistedBop = Hoisting.hoist(closureBop)
+let hoistedIf = Hoisting.hoist(closureIf)
+
+Console.log2("Identity function:", Print.printANF(hoistedLambda))
+Console.log2("Application:", Print.printANF(hoistedApp))
+Console.log2("Binary operation:", Print.printANF(hoistedBop))
+Console.log2("If expression:", Print.printANF(hoistedIf))
+
+Console.log("\n=== Complete Compilation Pipeline ===")
+let compiledLambda = Compiler.compile(testLambda)
+let compiledApp = Compiler.compile(testApp)
+let compiledBop = Compiler.compile(testBop)
+let compiledIf = Compiler.compile(testIf)
+
+Console.log2("Identity function:", Print.printANF(compiledLambda))
+Console.log2("Application:", Print.printANF(compiledApp))
+Console.log2("Binary operation:", Print.printANF(compiledBop))
+Console.log2("If expression:", Print.printANF(compiledIf))
+
+Console.log("\n=== Complex Test Cases ===")
+Console.log("--- Original Complex Lambda Terms ---")
+Console.log2("Nested functions:", Print.printLam(testNested))
+Console.log2("Curried function:", Print.printLam(testCurried))
+Console.log2("Complex free vars:", Print.printLam(testComplexFreeVars))
+Console.log2("Conditional nested:", Print.printLam(testConditionalNested))
+
+Console.log("\n--- After Alpha Renaming ---")
+let renamedNested = Lam.rename(testNested)
+let renamedCurried = Lam.rename(testCurried)
+let renamedComplexFreeVars = Lam.rename(testComplexFreeVars)
+let renamedConditionalNested = Lam.rename(testConditionalNested)
+
+Console.log2("Nested functions:", Print.printLam(renamedNested))
+Console.log2("Curried function:", Print.printLam(renamedCurried))
+Console.log2("Complex free vars:", Print.printLam(renamedComplexFreeVars))
+Console.log2("Conditional nested:", Print.printLam(renamedConditionalNested))
+
+Console.log("\n--- After ANF Conversion ---")
+let anfNested = ANF.convert(renamedNested)
+let anfCurried = ANF.convert(renamedCurried)
+let anfComplexFreeVars = ANF.convert(renamedComplexFreeVars)
+let anfConditionalNested = ANF.convert(renamedConditionalNested)
+
+Console.log2("Nested functions:", Print.printANF(anfNested))
+Console.log2("Curried function:", Print.printANF(anfCurried))
+Console.log2("Complex free vars:", Print.printANF(anfComplexFreeVars))
+Console.log2("Conditional nested:", Print.printANF(anfConditionalNested))
+
+Console.log("\n--- After Closure Conversion (Correct Order) ---")
+let closureNested = ClosureConversion.convert(anfNested)
+let closureCurried = ClosureConversion.convert(anfCurried)
+let closureComplexFreeVars = ClosureConversion.convert(anfComplexFreeVars)
+let closureConditionalNested = ClosureConversion.convert(anfConditionalNested)
+
+Console.log2("Nested functions:", Print.printANF(closureNested))
+Console.log2("Curried function:", Print.printANF(closureCurried))
+Console.log2("Complex free vars:", Print.printANF(closureComplexFreeVars))
+Console.log2("Conditional nested:", Print.printANF(closureConditionalNested))
+
+Console.log("\n--- After Hoisting (Correct Order) ---")
+let hoistedNested = Hoisting.hoist(closureNested)
+let hoistedCurried = Hoisting.hoist(closureCurried)
+let hoistedComplexFreeVars = Hoisting.hoist(closureComplexFreeVars)
+let hoistedConditionalNested = Hoisting.hoist(closureConditionalNested)
+
+Console.log2("Nested functions:", Print.printANF(hoistedNested))
+Console.log2("Curried function:", Print.printANF(hoistedCurried))
+Console.log2("Complex free vars:", Print.printANF(hoistedComplexFreeVars))
+Console.log2("Conditional nested:", Print.printANF(hoistedConditionalNested))
+
+Console.log("\n--- Complete Compilation Pipeline (Correct Order) ---")
+let finalNested = Compiler.compile(testNested)
+let finalCurried = Compiler.compile(testCurried)
+let finalComplexFreeVars = Compiler.compile(testComplexFreeVars)
+let finalConditionalNested = Compiler.compile(testConditionalNested)
+
+Console.log2("Nested functions:", Print.printANF(finalNested))
+Console.log2("Curried function:", Print.printANF(finalCurried))
+Console.log2("Complex free vars:", Print.printANF(finalComplexFreeVars))
+Console.log2("Conditional nested:", Print.printANF(finalConditionalNested))
