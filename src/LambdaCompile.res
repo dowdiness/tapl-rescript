@@ -152,7 +152,7 @@ let subst = (j: deBruijnIndex, s, t) => {
   walk(0, t)
 }
 
-// β-reduction
+// α-reduction
 let substTop = (s, t) => {
   shift(-1, subst(0, shift(1, s), t))
 }

@@ -1,4 +1,6 @@
 // Implementation of Chapter 10 on Types and Programming Languages
+// Reference
+// https://users.cs.northwestern.edu/~jesse/course/type-systems-wi18/type-notes/_-sub__subtyping_with_records.html
 type deBruijnIndex = int
 type depth = int
 
@@ -96,10 +98,13 @@ let rec typeOf = (ctx, t) => {
     | App(t1, t2) => {
       switch (typeOf(ctx, t1), typeOf(ctx, t2)) {
         | (Some(TyArr(tyT11, tyT12)), Some(tyT2)) => {
-          if !subtype(tyT2, tyT11) {
+          if subtype(tyT2, tyT11) {
+            Some(tyT12)
+          } else {
+            // Type Error!
             Console.log2(tyT2, tyT11)
+            None
           }
-          subtype(tyT2, tyT11) ? Some(tyT12) : None
         }
         | (_, _) => {
           Console.log2(t1, t2)
@@ -113,9 +118,15 @@ let rec typeOf = (ctx, t) => {
     | False => Some(TyBool)
     // T-If
     | If(t1, t2, t3) => {
-      switch (typeOf(ctx, t1), typeOf(ctx, t2), typeOf(ctx, t3)) {
-        // ty2 and ty3 need to have same type
-        | (Some(TyBool), Some(ty2), Some(ty3)) => ty2 == ty3 ? Some(ty2) : None
+      switch typeOf(ctx, t1) {
+        | Some(TyBool) => {
+          switch (typeOf(ctx, t2), typeOf(ctx, t3)) {
+            // ty2 and ty3 need to have same type
+            | (Some(ty2), Some(ty3)) => ty2 == ty3 ? Some(ty2) : None
+            | _ => None
+          }
+        }
+        // Error! if condition is not bool
         | _ => None
       }
     }
