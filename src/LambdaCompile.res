@@ -404,6 +404,70 @@ module Print = {
   }
 }
 
+// LLVMlite Lowering
+module LLVMLowering = {
+  // Phase 1: Basic arithmetic operations and primitives
+  let lowerPhase1 = (anf: ANF.t): string => {
+    let instructions = ref(list{})
+
+    let rec go = (t: ANF.t) => {
+      switch t {
+      | Halt(AtomInt(n)) =>
+          instructions := list{`ret i64 ${Int.toString(n)}`, ...instructions.contents}
+      | Halt(AtomVar(x)) =>
+          instructions := list{`ret i64 %${x}`, ...instructions.contents}
+      | Bop(r, Plus, AtomInt(x), AtomInt(y), e) => {
+          instructions := list{`%${r} = add i64 ${Int.toString(x)}, ${Int.toString(y)}`, ...instructions.contents}
+          go(e)
+        }
+      | Bop(r, Minus, AtomInt(x), AtomInt(y), e) => {
+          instructions := list{`%${r} = sub i64 ${Int.toString(x)}, ${Int.toString(y)}`, ...instructions.contents}
+          go(e)
+        }
+      | Bop(r, Plus, AtomVar(x), AtomInt(y), e) => {
+          instructions := list{`%${r} = add i64 %${x}, ${Int.toString(y)}`, ...instructions.contents}
+          go(e)
+        }
+      | Bop(r, Plus, AtomInt(x), AtomVar(y), e) => {
+          instructions := list{`%${r} = add i64 ${Int.toString(x)}, %${y}`, ...instructions.contents}
+          go(e)
+        }
+      | Bop(r, Plus, AtomVar(x), AtomVar(y), e) => {
+          instructions := list{`%${r} = add i64 %${x}, %${y}`, ...instructions.contents}
+          go(e)
+        }
+      | Bop(r, Minus, AtomVar(x), AtomInt(y), e) => {
+          instructions := list{`%${r} = sub i64 %${x}, ${Int.toString(y)}`, ...instructions.contents}
+          go(e)
+        }
+      | Bop(r, Minus, AtomInt(x), AtomVar(y), e) => {
+          instructions := list{`%${r} = sub i64 ${Int.toString(x)}, %${y}`, ...instructions.contents}
+          go(e)
+        }
+      | Bop(r, Minus, AtomVar(x), AtomVar(y), e) => {
+          instructions := list{`%${r} = sub i64 %${x}, %${y}`, ...instructions.contents}
+          go(e)
+        }
+      | _ => failwith("Phase 1: Unsupported ANF construct")
+      }
+    }
+
+    go(anf)
+
+    let body = instructions.contents->List.reverse->List.toArray->Array.joinWith("\n  ")
+    `define i64 @main() {\nentry:\n  ${body}\n}`
+  }
+
+  // Helper function to convert atom to string representation
+  let atomToString = (atom: ANF.atom): string => {
+    switch atom {
+    | AtomInt(i) => Int.toString(i)
+    | AtomVar(x) => `%${x}`
+    | AtomGlob(x) => `@${x}`
+    }
+  }
+}
+
 module Compiler = {
   let compile = (term: Lam.t) => {
     term->Lam.rename->ANF.convert->ClosureConversion.convert->Hoisting.hoist
@@ -587,3 +651,33 @@ Console.log2("Nested functions:", Print.printANF(finalNested))
 Console.log2("Curried function:", Print.printANF(finalCurried))
 Console.log2("Complex free vars:", Print.printANF(finalComplexFreeVars))
 Console.log2("Conditional nested:", Print.printANF(finalConditionalNested))
+
+Console.log("\n=== LLVMlite Lowering Phase 1 Tests ===")
+
+// Test 1: Simple integer halt
+let testSimpleInt = ANF.Halt(ANF.AtomInt(42))
+Console.log("--- Test 1: Simple integer ---")
+Console.log2("ANF:", Print.printANF(testSimpleInt))
+Console.log2("LLVM IR:", LLVMLowering.lowerPhase1(testSimpleInt))
+
+// Test 2: Basic addition with integers
+let testAddInts = ANF.Bop("r", Plus, ANF.AtomInt(3), ANF.AtomInt(4), ANF.Halt(ANF.AtomVar("r")))
+Console.log("\n--- Test 2: Addition with integers ---")
+Console.log2("ANF:", Print.printANF(testAddInts))
+Console.log2("LLVM IR:", LLVMLowering.lowerPhase1(testAddInts))
+
+// Test 3: Basic subtraction with integers
+let testSubInts = ANF.Bop("s", Minus, ANF.AtomInt(10), ANF.AtomInt(3), ANF.Halt(ANF.AtomVar("s")))
+Console.log("\n--- Test 3: Subtraction with integers ---")
+Console.log2("ANF:", Print.printANF(testSubInts))
+Console.log2("LLVM IR:", LLVMLowering.lowerPhase1(testSubInts))
+
+// Test 4: Test the basic binary operation from existing test cases
+Console.log("\n--- Test 4: Existing binary operation test ---")
+Console.log2("ANF:", Print.printANF(hoistedBop))
+try {
+  Console.log2("LLVM IR:", LLVMLowering.lowerPhase1(hoistedBop))
+} catch {
+| Failure(msg) => Console.log2("Expected failure:", msg)
+| _ => Console.log("Unexpected error")
+}

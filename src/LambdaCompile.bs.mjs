@@ -5,6 +5,7 @@ import * as PervasivesU from "rescript/lib/es6/pervasivesU.js";
 import * as Belt_MapString from "rescript/lib/es6/belt_MapString.js";
 import * as Belt_SetString from "rescript/lib/es6/belt_SetString.js";
 import * as Caml_exceptions from "rescript/lib/es6/caml_exceptions.js";
+import * as Caml_js_exceptions from "rescript/lib/es6/caml_js_exceptions.js";
 
 var NoRuleApplies = /* @__PURE__ */Caml_exceptions.create("LambdaCompile.Lam.NoRuleApplies");
 
@@ -739,6 +740,165 @@ var Print = {
   printLam: printLam
 };
 
+function lowerPhase1(anf) {
+  var instructions = {
+    contents: /* [] */0
+  };
+  var go = function (_t) {
+    while(true) {
+      var t = _t;
+      switch (t.TAG) {
+        case "Halt" :
+            var n = t._0;
+            switch (n.TAG) {
+              case "AtomInt" :
+                  instructions.contents = {
+                    hd: "ret i64 " + n._0.toString(),
+                    tl: instructions.contents
+                  };
+                  return ;
+              case "AtomVar" :
+                  instructions.contents = {
+                    hd: "ret i64 %" + n._0,
+                    tl: instructions.contents
+                  };
+                  return ;
+              case "AtomGlob" :
+                  return PervasivesU.failwith("Phase 1: Unsupported ANF construct");
+              
+            }
+        case "Bop" :
+            var r = t._0;
+            if (t._1 === "Plus") {
+              var x = t._2;
+              switch (x.TAG) {
+                case "AtomInt" :
+                    var y = t._3;
+                    var x$1 = x._0;
+                    switch (y.TAG) {
+                      case "AtomInt" :
+                          instructions.contents = {
+                            hd: "%" + r + " = add i64 " + x$1.toString() + ", " + y._0.toString(),
+                            tl: instructions.contents
+                          };
+                          _t = t._4;
+                          continue ;
+                      case "AtomVar" :
+                          instructions.contents = {
+                            hd: "%" + r + " = add i64 " + x$1.toString() + ", %" + y._0,
+                            tl: instructions.contents
+                          };
+                          _t = t._4;
+                          continue ;
+                      case "AtomGlob" :
+                          return PervasivesU.failwith("Phase 1: Unsupported ANF construct");
+                      
+                    }
+                case "AtomVar" :
+                    var y$1 = t._3;
+                    var x$2 = x._0;
+                    switch (y$1.TAG) {
+                      case "AtomInt" :
+                          instructions.contents = {
+                            hd: "%" + r + " = add i64 %" + x$2 + ", " + y$1._0.toString(),
+                            tl: instructions.contents
+                          };
+                          _t = t._4;
+                          continue ;
+                      case "AtomVar" :
+                          instructions.contents = {
+                            hd: "%" + r + " = add i64 %" + x$2 + ", %" + y$1._0,
+                            tl: instructions.contents
+                          };
+                          _t = t._4;
+                          continue ;
+                      case "AtomGlob" :
+                          return PervasivesU.failwith("Phase 1: Unsupported ANF construct");
+                      
+                    }
+                case "AtomGlob" :
+                    return PervasivesU.failwith("Phase 1: Unsupported ANF construct");
+                
+              }
+            } else {
+              var x$3 = t._2;
+              switch (x$3.TAG) {
+                case "AtomInt" :
+                    var y$2 = t._3;
+                    var x$4 = x$3._0;
+                    switch (y$2.TAG) {
+                      case "AtomInt" :
+                          instructions.contents = {
+                            hd: "%" + r + " = sub i64 " + x$4.toString() + ", " + y$2._0.toString(),
+                            tl: instructions.contents
+                          };
+                          _t = t._4;
+                          continue ;
+                      case "AtomVar" :
+                          instructions.contents = {
+                            hd: "%" + r + " = sub i64 " + x$4.toString() + ", %" + y$2._0,
+                            tl: instructions.contents
+                          };
+                          _t = t._4;
+                          continue ;
+                      case "AtomGlob" :
+                          return PervasivesU.failwith("Phase 1: Unsupported ANF construct");
+                      
+                    }
+                case "AtomVar" :
+                    var y$3 = t._3;
+                    var x$5 = x$3._0;
+                    switch (y$3.TAG) {
+                      case "AtomInt" :
+                          instructions.contents = {
+                            hd: "%" + r + " = sub i64 %" + x$5 + ", " + y$3._0.toString(),
+                            tl: instructions.contents
+                          };
+                          _t = t._4;
+                          continue ;
+                      case "AtomVar" :
+                          instructions.contents = {
+                            hd: "%" + r + " = sub i64 %" + x$5 + ", %" + y$3._0,
+                            tl: instructions.contents
+                          };
+                          _t = t._4;
+                          continue ;
+                      case "AtomGlob" :
+                          return PervasivesU.failwith("Phase 1: Unsupported ANF construct");
+                      
+                    }
+                case "AtomGlob" :
+                    return PervasivesU.failwith("Phase 1: Unsupported ANF construct");
+                
+              }
+            }
+        default:
+          return PervasivesU.failwith("Phase 1: Unsupported ANF construct");
+      }
+    };
+  };
+  go(anf);
+  var body = Core__List.toArray(Core__List.reverse(instructions.contents)).join("\n  ");
+  return "define i64 @main() {\nentry:\n  " + body + "\n}";
+}
+
+function atomToString(atom) {
+  switch (atom.TAG) {
+    case "AtomInt" :
+        return atom._0.toString();
+    case "AtomVar" :
+        return "%" + atom._0;
+    case "AtomGlob" :
+        return "@" + atom._0;
+    
+  }
+}
+
+var LLVMLowering = {
+  lowerPhase1: lowerPhase1,
+  atomToString: atomToString
+};
+
 function compile(term) {
   return hoist(go$2(go$1(rename(term), mkHalt)));
 }
@@ -1181,6 +1341,92 @@ console.log("Complex free vars:", printANF(finalComplexFreeVars));
 
 console.log("Conditional nested:", printANF(finalConditionalNested));
 
+console.log("\n=== LLVMlite Lowering Phase 1 Tests ===");
+
+var testSimpleInt = {
+  TAG: "Halt",
+  _0: {
+    TAG: "AtomInt",
+    _0: 42
+  }
+};
+
+console.log("--- Test 1: Simple integer ---");
+
+console.log("ANF:", printANF(testSimpleInt));
+
+console.log("LLVM IR:", lowerPhase1(testSimpleInt));
+
+var testAddInts = {
+  TAG: "Bop",
+  _0: "r",
+  _1: "Plus",
+  _2: {
+    TAG: "AtomInt",
+    _0: 3
+  },
+  _3: {
+    TAG: "AtomInt",
+    _0: 4
+  },
+  _4: {
+    TAG: "Halt",
+    _0: {
+      TAG: "AtomVar",
+      _0: "r"
+    }
+  }
+};
+
+console.log("\n--- Test 2: Addition with integers ---");
+
+console.log("ANF:", printANF(testAddInts));
+
+console.log("LLVM IR:", lowerPhase1(testAddInts));
+
+var testSubInts = {
+  TAG: "Bop",
+  _0: "s",
+  _1: "Minus",
+  _2: {
+    TAG: "AtomInt",
+    _0: 10
+  },
+  _3: {
+    TAG: "AtomInt",
+    _0: 3
+  },
+  _4: {
+    TAG: "Halt",
+    _0: {
+      TAG: "AtomVar",
+      _0: "s"
+    }
+  }
+};
+
+console.log("\n--- Test 3: Subtraction with integers ---");
+
+console.log("ANF:", printANF(testSubInts));
+
+console.log("LLVM IR:", lowerPhase1(testSubInts));
+
+console.log("\n--- Test 4: Existing binary operation test ---");
+
+console.log("ANF:", printANF(hoistedBop));
+
+try {
+  console.log("LLVM IR:", lowerPhase1(hoistedBop));
+}
+catch (raw_msg){
+  var msg = Caml_js_exceptions.internalToOCamlException(raw_msg);
+  if (msg.RE_EXN_ID === "Failure") {
+    console.log("Expected failure:", msg._1);
+  } else {
+    console.log("Unexpected error");
+  }
+}
+
 export {
   Lam ,
   ANF ,
@@ -1188,6 +1434,7 @@ export {
   ClosureConversion ,
   Hoisting ,
   Print ,
+  LLVMLowering ,
   Compiler ,
   testLambda ,
   testApp ,
@@ -1237,5 +1484,8 @@ export {
   finalCurried ,
   finalComplexFreeVars ,
   finalConditionalNested ,
+  testSimpleInt ,
+  testAddInts ,
+  testSubInts ,
 }
 /* rename Not a pure module */
