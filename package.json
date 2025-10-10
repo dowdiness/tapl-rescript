@@ -14,7 +14,11 @@
     "res:clean": "rescript clean",
     "res:format": "rescript format",
     "res:doc": "rescript-tools doc src/TypedLambda.res",
-    "res:dev": "rescript build -w"
+    "res:dev": "rescript build -w",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
+    "test:watch": "vitest --watch"
   },
   "dependencies": {
     "@rescript/core": "^1.0.0",
@@ -22,6 +26,8 @@
     "rescript-nodejs": "^15.0.0"
   },
   "devDependencies": {
-    "@rescript/tools": "^0.5.0"
+    "@rescript/tools": "^0.5.0",
+    "@vitest/ui": "^3.2.4",
+    "vitest": "^3.2.4"
   }
 }
