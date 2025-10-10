@@ -513,7 +513,13 @@ module LLVMLowering = {
           mainInstructions := list{`ret i64 ${Int.toString(n)}`, ...mainInstructions.contents}
       | App(r, f, args, e) => {
           // Simple direct function call (Phase 2 - no closures yet)
-          let argList = args->List.map(atomToString)->List.toArray->Array.joinWith(", ")
+          let argList = args->List.map(atom => {
+            switch atom {
+            | AtomInt(i) => `i64 ${Int.toString(i)}`
+            | AtomVar(x) => `i64 %${x}`
+            | AtomGlob(x) => `i64 @${x}`
+            }
+          })->List.toArray->Array.joinWith(", ")
           mainInstructions := list{`%${r} = call i64 @${f}(${argList})`, ...mainInstructions.contents}
           extractFunctions(e)
         }

@@ -987,7 +987,17 @@ function lowerPhase2(anf) {
             _t = t._3;
             continue ;
         case "App" :
-            var argList = Core__List.toArray(Core__List.map(t._2, atomToString)).join(", ");
+            var argList = Core__List.toArray(Core__List.map(t._2, (function (atom) {
+                          switch (atom.TAG) {
+                            case "AtomInt" :
+                                return "i64 " + atom._0.toString();
+                            case "AtomVar" :
+                                return "i64 %" + atom._0;
+                            case "AtomGlob" :
+                                return "i64 @" + atom._0;
+                            
+                          }
+                        }))).join(", ");
             mainInstructions.contents = {
               hd: "%" + t._0 + " = call i64 @" + t._1 + "(" + argList + ")",
               tl: mainInstructions.contents

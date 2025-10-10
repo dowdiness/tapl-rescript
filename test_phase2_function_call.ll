@@ -6,6 +6,6 @@ entry:
 
 define i64 @main() {
 entry:
-  %result = call i64 @double(21)
+  %result = call i64 @double(i64 21)
   ret i64 %result
 }
