@@ -10,16 +10,18 @@
   "author": "Koji Ishimoto",
   "license": "ISC",
   "scripts": {
-    "run:small": "node src/SmallStepArith.bs.mjs",
-    "run:debrujin": "node src/Debrujin.bs.mjs",
-    "run:typed": "node src/TypedLambda.bs.mjs",
     "res:build": "rescript",
     "res:clean": "rescript clean",
+    "res:format": "rescript format",
+    "res:doc": "rescript-tools doc src/TypedLambda.res",
     "res:dev": "rescript build -w"
   },
   "dependencies": {
     "@rescript/core": "^1.0.0",
     "rescript": "^11.0.1",
     "rescript-nodejs": "^15.0.0"
+  },
+  "devDependencies": {
+    "@rescript/tools": "^0.5.0"
   }
 }

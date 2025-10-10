@@ -7,3 +7,5 @@ Several implementations of exercises from the book, [Types and Programming Langu
 - [DeBrujin](https://github.com/dowdiness/tapl-rescript/blob/main/src/DeBrujin.res) is an implementation of untyped lambda calculus from Chapter 7.
 
 - [Typedlambda](https://github.com/dowdiness/tapl-rescript/blob/main/src/Typedlambda.res) is an implementation of typed lambda calculus from Chapter 10.
+
+- [Subtyping](https://github.com/dowdiness/tapl-rescript/blob/main/src/Subtyping.res) is an implementation of typed lambda calculus with Subtyping from Chapter 15.
