@@ -39,6 +39,7 @@ module Expect = {
 
   // 文字列マッチャー
   @send external toMatch: (t<string>, string) => unit = "toMatch"
+  @send external toMatchRe: (t<string>, RegExp.t) => unit = "toMatch"
   @send external toContain: (t<string>, string) => unit = "toContain"
 
   // 配列マッチャー

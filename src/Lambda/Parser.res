@@ -207,7 +207,7 @@ let parse = (input: string): Ast.t => {
             let (parser, body) = parseExpression(parser)
             (parser, Ast.Lam(param, body))
           }
-        | _ => raise(ParseError("Expected parameter after λ"))
+        | token => raise(ParseError(`Expected parameter after λ,  but get ${printToken(token)} instead`))
         }
       }
     | If => {

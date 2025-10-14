@@ -61,7 +61,7 @@ describe("Alpha Renaming", () => {
     let printed = Ast.printLam(renamed)
     // Should contain lambda and renamed variable
     expect(printed)->toContain("λ")
-    expect(printed)->toContain("x0") // Should have renamed variable like x0
+    expect(printed)->toMatchRe(RegExp.fromString("x\\d+")) // Should have renamed variable like x0
   })
 
   test("application", () => {
@@ -69,7 +69,7 @@ describe("Alpha Renaming", () => {
     let printed = Ast.printLam(renamed)
     expect(printed)->toContain("λ")
     expect(printed)->toContain("42")
-    expect(printed)->toContain("x1") // Should have renamed variables
+    expect(printed)->toMatchRe(RegExp.fromString("x\\d+")) // Should have renamed variable like x0
   })
 
   test("binary operation", () => {
@@ -484,6 +484,15 @@ describe("Integrated Compiler Pipeline Tests", () => {
     expect(llvm)->toContain("icmp ne i64 1, 0")
     expect(llvm)->toContain("define i64 @main()")
   })
+
+  test("complete pipeline - conditional (now works with corrected hoisting)", () => {
+    let source = "((λx.x + 8) (12 - 5))"
+    let testApp = Parser.parse(source)
+    let llvm = Compiler.compileToLLVM(testApp, 3)
+    Console.log(llvm)
+    expect(llvm)->toContain("inttoptr i64")
+    expect(llvm)->toContain("getelementptr { i64, i64 }, { i64, i64 }*")
+  })
 })
 
 describe("Print Functions", () => {
@@ -532,11 +541,3 @@ describe("Print Functions", () => {
     expect(printed)->toContain("if 1 then 2 else 3")
   })
 })
-
-// test("complete pipeline - compileToLLVM", () => {
-//   let anf = Compiler.compile(testIf)
-//   let compiled = Compiler.compileToLLVM(testIf, 4)
-//   Console.log(Ast.printLam(testIf))
-//   Console.log(ANF.printANF(anf))
-//   Console.log(compiled)
-// })

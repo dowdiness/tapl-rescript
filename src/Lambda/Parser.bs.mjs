@@ -287,14 +287,7 @@ function parse(input) {
       case "Lambda" :
           var parser$1 = advance(parser);
           var param = peek(parser$1);
-          if (typeof param !== "object") {
-            throw {
-                  RE_EXN_ID: ParseError,
-                  _1: "Expected parameter after λ",
-                  Error: new Error()
-                };
-          }
-          if (param.TAG === "Identifier") {
+          if (typeof param === "object" && param.TAG === "Identifier") {
             var parser$2 = advance(parser$1);
             var parser$3 = expect(parser$2, "Dot");
             var match = parseBinaryOp(parser$3);
@@ -309,7 +302,7 @@ function parse(input) {
           }
           throw {
                 RE_EXN_ID: ParseError,
-                _1: "Expected parameter after λ",
+                _1: "Expected parameter after λ,  but get " + printToken(param) + " instead",
                 Error: new Error()
               };
       case "LeftParen" :

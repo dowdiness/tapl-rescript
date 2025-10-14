@@ -1012,9 +1012,10 @@ function lowerPhase4(anf) {
                             };
                             return ;
                         case "AtomGlob" :
-                            return PervasivesU.failwith("Phase 4: Unsupported construct in function body");
+                            break;
                         
                       }
+                      break;
                   case "Bop" :
                       var r = bodyTerm._0;
                       if (bodyTerm._1 === "Plus") {
@@ -1054,8 +1055,9 @@ function lowerPhase4(anf) {
                       _bodyTerm = bodyTerm._2;
                       continue ;
                   default:
-                    return PervasivesU.failwith("Phase 4: Unsupported construct in function body");
+                    
                 }
+                return PervasivesU.failwith("Phase 4: Unsupported construct in function body: " + ANF.printANF(bodyTerm));
               };
             }
             }(bodyInstructions));

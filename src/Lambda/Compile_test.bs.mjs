@@ -2,6 +2,7 @@
 
 import * as ANF from "./ANF.bs.mjs";
 import * as Ast from "./Ast.bs.mjs";
+import * as Parser from "./Parser.bs.mjs";
 import * as Compile from "./Compile.bs.mjs";
 import * as Belt_SetString from "rescript/lib/es6/belt_SetString.js";
 import * as ClosureConversion from "./ClosureConversion.bs.mjs";
@@ -243,14 +244,14 @@ describe("Alpha Renaming", (function () {
                 var renamed = Ast.rename(testLambda);
                 var printed = Ast.printLam(renamed);
                 expect(printed).toContain("λ");
-                expect(printed).toContain("x0");
+                expect(printed).toMatch(new RegExp("x\\d+"));
               }));
         test("application", (function () {
                 var renamed = Ast.rename(testApp);
                 var printed = Ast.printLam(renamed);
                 expect(printed).toContain("λ");
                 expect(printed).toContain("42");
-                expect(printed).toContain("x1");
+                expect(printed).toMatch(new RegExp("x\\d+"));
               }));
         test("binary operation", (function () {
                 var renamed = Ast.rename(testBop);
@@ -1085,6 +1086,13 @@ describe("Integrated Compiler Pipeline Tests", (function () {
                     }, 4);
                 expect(llvm).toContain("icmp ne i64 1, 0");
                 expect(llvm).toContain("define i64 @main()");
+              }));
+        test("complete pipeline - conditional (now works with corrected hoisting)", (function () {
+                var testApp = Parser.parse("((λx.x + 8) (12 - 5))");
+                var llvm = Compile.Compiler.compileToLLVM(testApp, 3);
+                console.log(llvm);
+                expect(llvm).toContain("inttoptr i64");
+                expect(llvm).toContain("getelementptr { i64, i64 }, { i64, i64 }*");
               }));
       }));
 

@@ -164,9 +164,9 @@ module Hoisting = {
   // Main hoisting function - creates straightline code
   let hoist = (term: ANF.t): ANF.t => {
     term
-    |> eliminateJoinPoints  // Step 1: Remove all Join/Jump constructs
-    |> extractFunctions     // Step 2: Extract functions to top level
-    |> (((functions, mainFlow)) => reconstructWithFunctions(functions, mainFlow))
+      -> eliminateJoinPoints  // Step 1: Remove all Join/Jump constructs
+      -> extractFunctions     // Step 2: Extract functions to top level
+      -> (((functions, mainFlow)) => reconstructWithFunctions(functions, mainFlow))
   }
 }
 
@@ -516,7 +516,7 @@ module LLVMLowering = {
                 bodyInstructions := list{`${elseLabel}:`, ...bodyInstructions.contents}
                 generateBody(elseBranch)
               }
-            | _ => failwith("Phase 4: Unsupported construct in function body")
+            | term => failwith(`Phase 4: Unsupported construct in function body: ${ANF.printANF(term)}`)
             }
           }
 
