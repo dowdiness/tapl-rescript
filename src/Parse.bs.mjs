@@ -122,8 +122,6 @@ function lexer(source) {
   return Core__List.reverse(lex(/* [] */0));
 }
 
-console.log(Core__List.toArray(lexer("(λa)")));
-
 var source = "((λ x. x) (λ y. y))";
 
 export {
@@ -135,4 +133,4 @@ export {
   source ,
   lexer ,
 }
-/*  Not a pure module */
+/* No side effect */

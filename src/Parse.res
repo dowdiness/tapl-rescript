@@ -70,4 +70,4 @@ let lexer = source => {
   lex(list{})->List.reverse
 }
 
-Console.log(lexer("(λa)")->List.toArray)
+// Console.log(lexer("(λa)")->List.toArray)
