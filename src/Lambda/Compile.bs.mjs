@@ -793,7 +793,26 @@ function lowerPhase3(anf) {
                       Core__List.mapWithIndex(vs, (function(r$1,size){
                           return function (i, atom) {
                             var gepInstr = "%" + r$1 + "_gep" + i.toString() + " = getelementptr { " + Core__Array.make(size, "i64").join(", ") + " }, { " + Core__Array.make(size, "i64").join(", ") + " }* %" + r$1 + "_ptr, i32 0, i32 " + i.toString();
-                            var storeInstr = "store i64 " + atomToString(atom) + ", i64* %" + r$1 + "_gep" + i.toString();
+                            var storeInstr;
+                            var exit = 0;
+                            switch (atom.TAG) {
+                              case "AtomInt" :
+                              case "AtomVar" :
+                                  exit = 1;
+                                  break;
+                              case "AtomGlob" :
+                                  var tmpVar = r$1 + "_tmp" + i.toString();
+                                  bodyInstructions.contents = {
+                                    hd: "%" + tmpVar + " = ptrtoint i64 (i64, i64)* @" + atom._0 + " to i64",
+                                    tl: bodyInstructions.contents
+                                  };
+                                  storeInstr = "store i64 %" + tmpVar + ", i64* %" + r$1 + "_gep" + i.toString();
+                                  break;
+                              
+                            }
+                            if (exit === 1) {
+                              storeInstr = "store i64 " + atomToString(atom) + ", i64* %" + r$1 + "_gep" + i.toString();
+                            }
                             bodyInstructions.contents = {
                               hd: storeInstr,
                               tl: {
@@ -844,6 +863,7 @@ function lowerPhase3(anf) {
             _t = t._3;
             continue ;
         case "App" :
+            var f = t._1;
             var argList = Core__List.toArray(Core__List.map(t._2, (function (atom) {
                           switch (atom.TAG) {
                             case "AtomInt" :
@@ -855,8 +875,13 @@ function lowerPhase3(anf) {
                             
                           }
                         }))).join(", ");
+            var fptrVar = f + "_fptr";
             mainInstructions.contents = {
-              hd: "%" + t._0 + " = call i64 @" + t._1 + "(" + argList + ")",
+              hd: "%" + fptrVar + " = inttoptr i64 %" + f + " to i64 (i64, i64)*",
+              tl: mainInstructions.contents
+            };
+            mainInstructions.contents = {
+              hd: "%" + t._0 + " = call i64 %" + fptrVar + "(" + argList + ")",
               tl: mainInstructions.contents
             };
             _t = t._3;
@@ -888,7 +913,26 @@ function lowerPhase3(anf) {
             Core__List.mapWithIndex(vs, (function(r$1,size){
                 return function (i, atom) {
                   var gepInstr = "%" + r$1 + "_gep" + i.toString() + " = getelementptr { " + Core__Array.make(size, "i64").join(", ") + " }, { " + Core__Array.make(size, "i64").join(", ") + " }* %" + r$1 + "_ptr, i32 0, i32 " + i.toString();
-                  var storeInstr = "store i64 " + atomToString(atom) + ", i64* %" + r$1 + "_gep" + i.toString();
+                  var storeInstr;
+                  var exit = 0;
+                  switch (atom.TAG) {
+                    case "AtomInt" :
+                    case "AtomVar" :
+                        exit = 1;
+                        break;
+                    case "AtomGlob" :
+                        var tmpVar = r$1 + "_tmp" + i.toString();
+                        mainInstructions.contents = {
+                          hd: "%" + tmpVar + " = ptrtoint i64 (i64, i64)* @" + atom._0 + " to i64",
+                          tl: mainInstructions.contents
+                        };
+                        storeInstr = "store i64 %" + tmpVar + ", i64* %" + r$1 + "_gep" + i.toString();
+                        break;
+                    
+                  }
+                  if (exit === 1) {
+                    storeInstr = "store i64 " + atomToString(atom) + ", i64* %" + r$1 + "_gep" + i.toString();
+                  }
                   mainInstructions.contents = {
                     hd: storeInstr,
                     tl: {

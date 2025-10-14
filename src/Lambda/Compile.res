@@ -358,7 +358,15 @@ module LLVMLowering = {
                 // Store each element
                 vs->List.mapWithIndex((i, atom) => {
                   let gepInstr = `%${r}_gep${Int.toString(i)} = getelementptr { ${Array.make(~length=size, "i64")->Array.joinWith(", ")} }, { ${Array.make(~length=size, "i64")->Array.joinWith(", ")} }* %${r}_ptr, i32 0, i32 ${Int.toString(i)}`
-                  let storeInstr = `store i64 ${atomToString(atom)}, i64* %${r}_gep${Int.toString(i)}`
+                  // Convert function pointers to i64
+                  let storeInstr = switch atom {
+                  | AtomGlob(fname) => {
+                      let tmpVar = `${r}_tmp${Int.toString(i)}`
+                      bodyInstructions := list{`%${tmpVar} = ptrtoint i64 (i64, i64)* @${fname} to i64`, ...bodyInstructions.contents}
+                      `store i64 %${tmpVar}, i64* %${r}_gep${Int.toString(i)}`
+                    }
+                  | _ => `store i64 ${atomToString(atom)}, i64* %${r}_gep${Int.toString(i)}`
+                  }
                   bodyInstructions := list{storeInstr, gepInstr, ...bodyInstructions.contents}
                 })->ignore
 
@@ -403,7 +411,7 @@ module LLVMLowering = {
       | Halt(AtomInt(n)) =>
           mainInstructions := list{`ret i64 ${Int.toString(n)}`, ...mainInstructions.contents}
       | App(r, f, args, e) => {
-          // Simple direct function call (Phase 3 - no closures yet)
+          // Indirect function call through closure (Phase 3)
           let argList = args->List.map(atom => {
             switch atom {
             | AtomInt(i) => `i64 ${Int.toString(i)}`
@@ -411,7 +419,10 @@ module LLVMLowering = {
             | AtomGlob(x) => `i64 @${x}`
             }
           })->List.toArray->Array.joinWith(", ")
-          mainInstructions := list{`%${r} = call i64 @${f}(${argList})`, ...mainInstructions.contents}
+          // Convert i64 to function pointer and make indirect call
+          let fptrVar = `${f}_fptr`
+          mainInstructions := list{`%${fptrVar} = inttoptr i64 %${f} to i64 (i64, i64)*`, ...mainInstructions.contents}
+          mainInstructions := list{`%${r} = call i64 %${fptrVar}(${argList})`, ...mainInstructions.contents}
           extractFunctions(e)
         }
       | Bop(r, Plus, x, y, e) => {
@@ -432,7 +443,15 @@ module LLVMLowering = {
           // Store each element
           vs->List.mapWithIndex((i, atom) => {
             let gepInstr = `%${r}_gep${Int.toString(i)} = getelementptr { ${Array.make(~length=size, "i64")->Array.joinWith(", ")} }, { ${Array.make(~length=size, "i64")->Array.joinWith(", ")} }* %${r}_ptr, i32 0, i32 ${Int.toString(i)}`
-            let storeInstr = `store i64 ${atomToString(atom)}, i64* %${r}_gep${Int.toString(i)}`
+            // Convert function pointers to i64
+            let storeInstr = switch atom {
+            | AtomGlob(fname) => {
+                let tmpVar = `${r}_tmp${Int.toString(i)}`
+                mainInstructions := list{`%${tmpVar} = ptrtoint i64 (i64, i64)* @${fname} to i64`, ...mainInstructions.contents}
+                `store i64 %${tmpVar}, i64* %${r}_gep${Int.toString(i)}`
+              }
+            | _ => `store i64 ${atomToString(atom)}, i64* %${r}_gep${Int.toString(i)}`
+            }
             mainInstructions := list{storeInstr, gepInstr, ...mainInstructions.contents}
           })->ignore
 
