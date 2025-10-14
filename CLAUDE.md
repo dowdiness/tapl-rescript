@@ -8,14 +8,14 @@ This repository contains implementations of exercises from "Types and Programmin
 
 ## Build Commands
 
-- **Build ReScript**: `npm run res:build` or `rescript`
-- **Clean build artifacts**: `npm run res:clean`
-- **Format code**: `npm run res:format`
-- **Watch mode for development**: `npm run res:dev`
-- **Run tests**: `npm run test` or `vitest`
-- **Run tests in watch mode**: `npm run test:watch`
-- **Run tests with UI**: `npm run test:ui`
-- **Run tests once**: `npm run test:run`
+- **Build ReScript**: `pnpm run res:build` or `rescript`
+- **Clean build artifacts**: `pnpm run res:clean`
+- **Format code**: `pnpm run res:format`
+- **Watch mode for development**: `pnpm run res:dev`
+- **Run tests**: `pnpm run test` or `vitest`
+- **Run tests in watch mode**: `pnpm run test:watch`
+- **Run tests with UI**: `pnpm run test:ui`
+- **Run tests once**: `pnpm run test:run`
 
 ## Architecture
 
