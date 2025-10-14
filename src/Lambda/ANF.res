@@ -72,3 +72,39 @@ let convert = {
   // Entry point for conversion
   (e: Ast.t) => go(e, mkHalt)
 }
+
+// Pretty printing function for atom
+let printAtom = (atom: atom): string => {
+  switch atom {
+  | AtomInt(i) => Int.toString(i)
+  | AtomVar(x) => x
+  | AtomGlob(x) => `@${x}`
+  }
+}
+
+// Pretty printing function for ANF
+let rec printANF = (t: t): string => {
+  switch t {
+  | Halt(atom) => `halt ${printAtom(atom)}`
+  | Fun(f, xs, e, e') => {
+      let params = xs->List.toArray->Array.joinWith(", ")
+      `fun ${f}(${params}) =\n  ${printANF(e)}\nin\n${printANF(e')}`
+    }
+  | Join(j, Some(p), e, e') => `join ${j}(${p}) =\n  ${printANF(e)}\nin\n${printANF(e')}`
+  | Join(j, None, e, e') => `join ${j} =\n  ${printANF(e)}\nin\n${printANF(e')}`
+  | Jump(j, Some(atom)) => `jump ${j}(${printAtom(atom)})`
+  | Jump(j, None) => `jump ${j}`
+  | App(r, f, vs, e) => {
+      let args = vs->List.map(printAtom)->List.toArray->Array.joinWith(", ")
+      `let ${r} = ${f}(${args}) in\n${printANF(e)}`
+    }
+  | Bop(r, Plus, x, y, e) => `let ${r} = ${printAtom(x)} + ${printAtom(y)} in\n${printANF(e)}`
+  | Bop(r, Minus, x, y, e) => `let ${r} = ${printAtom(x)} - ${printAtom(y)} in\n${printANF(e)}`
+  | If(atom, t, f) => `if ${printAtom(atom)} then\n  ${printANF(t)}\nelse\n  ${printANF(f)}`
+  | Tuple(r, vs, e) => {
+      let values = vs->List.map(printAtom)->List.toArray->Array.joinWith(", ")
+      `let ${r} = (${values}) in\n${printANF(e)}`
+    }
+  | Proj(r, x, i, e) => `let ${r} = ${x}.${Int.toString(i)} in\n${printANF(e)}`
+  }
+}

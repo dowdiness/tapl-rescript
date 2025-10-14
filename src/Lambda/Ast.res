@@ -49,3 +49,16 @@ let rename = {
   let env = Belt.Map.String.empty
   go(env)
 }
+
+// Pretty printing function for AST
+let rec printLam = (t: t): string => {
+  switch t {
+  | Int(i) => Int.toString(i)
+  | Var(x) => x
+  | Lam(x, t) => `(λ${x}. ${printLam(t)})`
+  | App(t1, t2) => `(${printLam(t1)} ${printLam(t2)})`
+  | Bop(Plus, t1, t2) => `(${printLam(t1)} + ${printLam(t2)})`
+  | Bop(Minus, t1, t2) => `(${printLam(t1)} - ${printLam(t2)})`
+  | If(t1, t2, t3) => `if ${printLam(t1)} then ${printLam(t2)} else ${printLam(t3)}`
+  }
+}

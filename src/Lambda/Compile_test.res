@@ -58,7 +58,7 @@ let testConditionalNested = Ast.If(
 describe("Alpha Renaming", () => {
   test("identity function", () => {
     let renamed = Ast.rename(testLambda)
-    let printed = Print.printLam(renamed)
+    let printed = Ast.printLam(renamed)
     // Should contain lambda and renamed variable
     expect(printed)->toContain("λ")
     expect(printed)->toContain("x0") // Should have renamed variable like x0
@@ -66,7 +66,7 @@ describe("Alpha Renaming", () => {
 
   test("application", () => {
     let renamed = Ast.rename(testApp)
-    let printed = Print.printLam(renamed)
+    let printed = Ast.printLam(renamed)
     expect(printed)->toContain("λ")
     expect(printed)->toContain("42")
     expect(printed)->toContain("x1") // Should have renamed variables
@@ -74,7 +74,7 @@ describe("Alpha Renaming", () => {
 
   test("binary operation", () => {
     let renamed = Ast.rename(testBop)
-    let printed = Print.printLam(renamed)
+    let printed = Ast.printLam(renamed)
     expect(printed)->toContain("3")
     expect(printed)->toContain("4")
     expect(printed)->toContain("+")
@@ -82,7 +82,7 @@ describe("Alpha Renaming", () => {
 
   test("if expression", () => {
     let renamed = Ast.rename(testIf)
-    let printed = Print.printLam(renamed)
+    let printed = Ast.printLam(renamed)
     expect(printed)->toContain("if")
     expect(printed)->toContain("then")
     expect(printed)->toContain("else")
@@ -93,7 +93,7 @@ describe("Alpha Renaming", () => {
 
   test("nested functions preserve structure", () => {
     let renamed = Ast.rename(testNested)
-    let printed = Print.printLam(renamed)
+    let printed = Ast.printLam(renamed)
     expect(printed)->toContain("λ")
     expect(printed)->toContain("+")
     expect(printed)->toContain("2")
@@ -102,7 +102,7 @@ describe("Alpha Renaming", () => {
 
   test("curried function maintains currying", () => {
     let renamed = Ast.rename(testCurried)
-    let printed = Print.printLam(renamed)
+    let printed = Ast.printLam(renamed)
     // Should have two lambda abstractions
     let lambdaCount = Js.String2.split(printed, "λ")->Array.length - 1
     expect(lambdaCount)->toBe(2)
@@ -114,7 +114,7 @@ describe("ANF Conversion", () => {
   test("identity function produces function definition", () => {
     let renamed = Ast.rename(testLambda)
     let anf = ANF.convert(renamed)
-    let printed = Print.printANF(anf)
+    let printed = ANF.printANF(anf)
     expect(printed)->toContain("fun")
     expect(printed)->toContain("halt")
   })
@@ -122,7 +122,7 @@ describe("ANF Conversion", () => {
   test("application produces function call", () => {
     let renamed = Ast.rename(testApp)
     let anf = ANF.convert(renamed)
-    let printed = Print.printANF(anf)
+    let printed = ANF.printANF(anf)
     expect(printed)->toContain("fun")
     expect(printed)->toContain("let")
     expect(printed)->toContain("42")
@@ -131,7 +131,7 @@ describe("ANF Conversion", () => {
   test("binary operation produces arithmetic", () => {
     let renamed = Ast.rename(testBop)
     let anf = ANF.convert(renamed)
-    let printed = Print.printANF(anf)
+    let printed = ANF.printANF(anf)
     expect(printed)->toContain("3 + 4")
     expect(printed)->toContain("halt")
   })
@@ -139,7 +139,7 @@ describe("ANF Conversion", () => {
   test("if expression produces conditional", () => {
     let renamed = Ast.rename(testIf)
     let anf = ANF.convert(renamed)
-    let printed = Print.printANF(anf)
+    let printed = ANF.printANF(anf)
     expect(printed)->toContain("if")
     expect(printed)->toContain("then")
     expect(printed)->toContain("else")
@@ -150,7 +150,7 @@ describe("ANF Conversion", () => {
   test("nested functions produce multiple function definitions", () => {
     let renamed = Ast.rename(testNested)
     let anf = ANF.convert(renamed)
-    let printed = Print.printANF(anf)
+    let printed = ANF.printANF(anf)
     // Should have multiple function definitions
     let funCount = Js.String2.split(printed, "fun ")->Array.length - 1
     expect(Belt.Int.toFloat(funCount))->toBeGreaterThan(1.0)
@@ -160,7 +160,7 @@ describe("ANF Conversion", () => {
   test("complex free variables handled correctly", () => {
     let renamed = Ast.rename(testComplexFreeVars)
     let anf = ANF.convert(renamed)
-    let printed = Print.printANF(anf)
+    let printed = ANF.printANF(anf)
     expect(printed)->toContain("fun")
     expect(printed)->toContain("let")
     expect(printed)->toContain("10")
@@ -191,7 +191,7 @@ describe("Closure Conversion", () => {
     let renamed = Ast.rename(testLambda)
     let anf = ANF.convert(renamed)
     let closure = ClosureConversion.convert(anf)
-    let printed = Print.printANF(closure)
+    let printed = ANF.printANF(closure)
     expect(printed)->toContain("fun")
     expect(printed)->toContain("env")
     expect(printed)->toContain("@") // Global function reference
@@ -201,7 +201,7 @@ describe("Closure Conversion", () => {
     let renamed = Ast.rename(testApp)
     let anf = ANF.convert(renamed)
     let closure = ClosureConversion.convert(anf)
-    let printed = Print.printANF(closure)
+    let printed = ANF.printANF(closure)
     expect(printed)->toContain("let")
     expect(printed)->toContain(".0") // Projection
     expect(printed)->toContain("42")
@@ -211,7 +211,7 @@ describe("Closure Conversion", () => {
     let renamed = Ast.rename(testBop)
     let anf = ANF.convert(renamed)
     let closure = ClosureConversion.convert(anf)
-    let printed = Print.printANF(closure)
+    let printed = ANF.printANF(closure)
     expect(printed)->toContain("3 + 4")
     expect(printed)->toContain("halt")
   })
@@ -220,7 +220,7 @@ describe("Closure Conversion", () => {
     let renamed = Ast.rename(testNested)
     let anf = ANF.convert(renamed)
     let closure = ClosureConversion.convert(anf)
-    let printed = Print.printANF(closure)
+    let printed = ANF.printANF(closure)
     expect(printed)->toContain("env")
     expect(printed)->toContain("@") // Global references
     expect(printed)->toContain("(") // Tuple creation
@@ -233,7 +233,7 @@ describe("Hoisting", () => {
     let anf = ANF.convert(renamed)
     let closure = ClosureConversion.convert(anf)
     let hoisted = Hoisting.hoist(closure)
-    let printed = Print.printANF(hoisted)
+    let printed = ANF.printANF(hoisted)
     // Function definitions should appear before main computation
     let funIndex = Js.String2.indexOf(printed, "fun")
     let tupleIndex = Js.String2.indexOf(printed, "(")
@@ -245,7 +245,7 @@ describe("Hoisting", () => {
     let anf = ANF.convert(renamed)
     let closure = ClosureConversion.convert(anf)
     let hoisted = Hoisting.hoist(closure)
-    let printed = Print.printANF(hoisted)
+    let printed = ANF.printANF(hoisted)
     expect(printed)->toContain("fun")
     expect(printed)->toContain("let")
     expect(printed)->toContain("42")
@@ -256,7 +256,7 @@ describe("Hoisting", () => {
     let anf = ANF.convert(renamed)
     let closure = ClosureConversion.convert(anf)
     let hoisted = Hoisting.hoist(closure)
-    let printed = Print.printANF(hoisted)
+    let printed = ANF.printANF(hoisted)
     expect(printed)->toContain("3 + 4")
     expect(printed)->toContain("halt")
   })
@@ -266,7 +266,7 @@ describe("Hoisting", () => {
     let anf = ANF.convert(renamed)
     let closure = ClosureConversion.convert(anf)
     let hoisted = Hoisting.hoist(closure)
-    let printed = Print.printANF(hoisted)
+    let printed = ANF.printANF(hoisted)
     // All function definitions should come before main computation
     let lines = Js.String2.split(printed, "\n")
     let funLines = lines->Array.filter(line => Js.String2.includes(line, "fun "))
@@ -399,7 +399,7 @@ describe("LLVM Lowering Phase 4", () => {
 describe("Complete Compilation Pipeline", () => {
   test("identity function compiles to proper ANF", () => {
     let compiled = Compiler.compile(testLambda)
-    let printed = Print.printANF(compiled)
+    let printed = ANF.printANF(compiled)
     expect(printed)->toContain("fun")
     expect(printed)->toContain("env")
     expect(printed)->toContain("halt")
@@ -407,7 +407,7 @@ describe("Complete Compilation Pipeline", () => {
 
   test("application produces function call structure", () => {
     let compiled = Compiler.compile(testApp)
-    let printed = Print.printANF(compiled)
+    let printed = ANF.printANF(compiled)
     expect(printed)->toContain("fun")
     expect(printed)->toContain("let")
     expect(printed)->toContain("42")
@@ -416,14 +416,14 @@ describe("Complete Compilation Pipeline", () => {
 
   test("binary operation compiles to arithmetic", () => {
     let compiled = Compiler.compile(testBop)
-    let printed = Print.printANF(compiled)
+    let printed = ANF.printANF(compiled)
     expect(printed)->toContain("3 + 4")
     expect(printed)->toContain("halt")
   })
 
   test("if expression compiles to straightline code (hoisting eliminates join points)", () => {
     let compiled = Compiler.compile(testIf)
-    let printed = Print.printANF(compiled)
+    let printed = ANF.printANF(compiled)
     expect(printed)->toContain("if")
     // After proper hoisting, join points should be eliminated
     expect(printed)->not->toContain("join")
@@ -432,7 +432,7 @@ describe("Complete Compilation Pipeline", () => {
 
   test("nested functions maintain proper structure", () => {
     let compiled = Compiler.compile(testNested)
-    let printed = Print.printANF(compiled)
+    let printed = ANF.printANF(compiled)
     let funCount = Js.String2.split(printed, "fun ")->Array.length - 1
     expect(Belt.Int.toFloat(funCount))->toBeGreaterThan(1.0)
     expect(printed)->toContain("env")
@@ -440,7 +440,7 @@ describe("Complete Compilation Pipeline", () => {
 
   test("curried function preserves currying", () => {
     let compiled = Compiler.compile(testCurried)
-    let printed = Print.printANF(compiled)
+    let printed = ANF.printANF(compiled)
     expect(printed)->toContain("fun")
     expect(printed)->toContain("+")
     expect(printed)->toContain("env")
@@ -448,7 +448,7 @@ describe("Complete Compilation Pipeline", () => {
 
   test("complex free variables handled correctly", () => {
     let compiled = Compiler.compile(testComplexFreeVars)
-    let printed = Print.printANF(compiled)
+    let printed = ANF.printANF(compiled)
     expect(printed)->toContain("fun")
     expect(printed)->toContain("10")
     expect(printed)->toContain("env")
@@ -456,7 +456,7 @@ describe("Complete Compilation Pipeline", () => {
 
   test("conditional nested functions compile properly (hoisting extracts functions)", () => {
     let compiled = Compiler.compile(testConditionalNested)
-    let printed = Print.printANF(compiled)
+    let printed = ANF.printANF(compiled)
     expect(printed)->toContain("if")
     expect(printed)->toContain("fun")
     // After proper hoisting, join points should be eliminated
@@ -488,14 +488,14 @@ describe("Integrated Compiler Pipeline Tests", () => {
 
 describe("Print Functions", () => {
   test("print lambda expressions with proper syntax", () => {
-    let printed = Print.printLam(testLambda)
+    let printed = Ast.printLam(testLambda)
     expect(printed)->toContain("λ")
     expect(printed)->toContain("x")
     expect(printed)->toContain(".")
   })
 
   test("print complex lambda expressions", () => {
-    let printed = Print.printLam(testBop)
+    let printed = Ast.printLam(testBop)
     expect(printed)->toContain("(")
     expect(printed)->toContain(")")
     expect(printed)->toContain("3")
@@ -505,30 +505,30 @@ describe("Print Functions", () => {
 
   test("print ANF halt expressions", () => {
     let anf = ANF.Halt(ANF.AtomInt(42))
-    let printed = Print.printANF(anf)
+    let printed = ANF.printANF(anf)
     expect(printed)->toBe("halt 42")
   })
 
   test("print ANF binary operations", () => {
     let anf = ANF.Bop("r", Plus, ANF.AtomInt(3), ANF.AtomInt(4), ANF.Halt(ANF.AtomVar("r")))
-    let printed = Print.printANF(anf)
+    let printed = ANF.printANF(anf)
     expect(printed)->toContain("let r = 3 + 4 in")
     expect(printed)->toContain("halt r")
   })
 
   test("print atoms correctly", () => {
-    let atomInt = Print.printAtom(ANF.AtomInt(42))
+    let atomInt = ANF.printAtom(ANF.AtomInt(42))
     expect(atomInt)->toBe("42")
 
-    let atomVar = Print.printAtom(ANF.AtomVar("x"))
+    let atomVar = ANF.printAtom(ANF.AtomVar("x"))
     expect(atomVar)->toBe("x")
 
-    let atomGlob = Print.printAtom(ANF.AtomGlob("f"))
+    let atomGlob = ANF.printAtom(ANF.AtomGlob("f"))
     expect(atomGlob)->toBe("@f")
   })
 
   test("print if expressions", () => {
-    let printed = Print.printLam(testIf)
+    let printed = Ast.printLam(testIf)
     expect(printed)->toContain("if 1 then 2 else 3")
   })
 })
@@ -536,7 +536,7 @@ describe("Print Functions", () => {
 // test("complete pipeline - compileToLLVM", () => {
 //   let anf = Compiler.compile(testIf)
 //   let compiled = Compiler.compileToLLVM(testIf, 4)
-//   Console.log(Print.printLam(testIf))
-//   Console.log(Print.printANF(anf))
+//   Console.log(Ast.printLam(testIf))
+//   Console.log(ANF.printANF(anf))
 //   Console.log(compiled)
 // })

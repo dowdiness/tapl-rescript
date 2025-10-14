@@ -56,49 +56,49 @@ describe("Parser Tests", () => {
 
   test("parse simple integer", () => {
     let expr = Parser.parse("42")
-    let printed = Compile.Print.printLam(expr)
+    let printed = Ast.printLam(expr)
     expect(printed)->toBe("42")
   })
 
   test("parse plus binary operator", () => {
     let expr = Parser.parse("1 + 2")
-    let printed = Compile.Print.printLam(expr)
+    let printed = Ast.printLam(expr)
     expect(printed)->toBe("(1 + 2)")
   })
 
   test("parse minus binary operator", () => {
     let expr = Parser.parse("5 - 2")
-    let printed = Compile.Print.printLam(expr)
+    let printed = Ast.printLam(expr)
     expect(printed)->toBe("(5 - 2)")
   })
 
   test("parse complex binary operators", () => {
     let expr = Parser.parse("10 - 5 + 2")
-    let printed = Compile.Print.printLam(expr)
+    let printed = Ast.printLam(expr)
     expect(printed)->toBe("((10 - 5) + 2)")
   })
 
   test("parse simple variable", () => {
     let expr = Parser.parse("x")
-    let printed = Compile.Print.printLam(expr)
+    let printed = Ast.printLam(expr)
     expect(printed)->toBe("x")
   })
 
   test("parse identity function", () => {
     let expr = Parser.parse("λx.x")
-    let printed = Compile.Print.printLam(expr)
+    let printed = Ast.printLam(expr)
     expect(printed)->toBe("(λx. x)")
   })
 
   test("parse parenthesized expression", () => {
     let expr = Parser.parse("(x)")
-    let printed = Compile.Print.printLam(expr)
+    let printed = Ast.printLam(expr)
     expect(printed)->toBe("x")
   })
 
   test("parse and compile identity function", () => {
     let compiled = Parser.parseAndCompile("λx.x")
-    let printed = Compile.Print.printANF(compiled)
+    let printed = ANF.printANF(compiled)
     expect(printed)->toContain("fun")
     expect(printed)->toContain("halt")
   })
@@ -118,7 +118,7 @@ describe("Parser Tests", () => {
   test("integration with corrected hoisting - no join points", () => {
     // This test verifies that the corrected hoisting eliminates join points
     let compiled = Parser.parseAndCompile("λx.x")
-    let printed = Compile.Print.printANF(compiled)
+    let printed = ANF.printANF(compiled)
 
     // Should contain function definition
     expect(printed)->toContain("fun")
@@ -137,7 +137,7 @@ describe("Parser Tests", () => {
   test("complex expression parsing", () => {
     // Test that we can parse and the result makes sense
     let expr = Parser.parse("λf.λx.x")
-    let printed = Compile.Print.printLam(expr)
+    let printed = Ast.printLam(expr)
     expect(printed)->toContain("λf")
     expect(printed)->toContain("λx")
   })
@@ -151,11 +151,11 @@ describe("Parser Integration with Corrected Hoisting", () => {
 
     // Parse
     let expr = Parser.parse(input)
-    expect(Compile.Print.printLam(expr))->toBe("(λx. x)")
+    expect(Ast.printLam(expr))->toBe("(λx. x)")
 
     // Compile with corrected hoisting
     let compiled = Compile.Compiler.compile(expr)
-    let anfPrinted = Compile.Print.printANF(compiled)
+    let anfPrinted = ANF.printANF(compiled)
 
     // Verify hoisting worked correctly (no join points)
     expect(anfPrinted)->not->toContain("join")
@@ -186,7 +186,7 @@ describe("Parser Integration with Corrected Hoisting", () => {
       let compiled = Compile.Compiler.compile(expr)
 
       // Verify no join points (corrected hoisting)
-      let printed = Compile.Print.printANF(compiled)
+      let printed = ANF.printANF(compiled)
       expect(printed)->not->toContain("join")
 
       Console.log(`✅ ${description} compiled successfully`)

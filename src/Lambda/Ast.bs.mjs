@@ -71,10 +71,33 @@ function go(env) {
 
 var rename = go(undefined);
 
+function printLam(t) {
+  switch (t.TAG) {
+    case "Int" :
+        return t._0.toString();
+    case "Var" :
+        return t._0;
+    case "Lam" :
+        return "(λ" + t._0 + ". " + printLam(t._1) + ")";
+    case "App" :
+        return "(" + printLam(t._0) + " " + printLam(t._1) + ")";
+    case "Bop" :
+        if (t._0 === "Plus") {
+          return "(" + printLam(t._1) + " + " + printLam(t._2) + ")";
+        } else {
+          return "(" + printLam(t._1) + " - " + printLam(t._2) + ")";
+        }
+    case "If" :
+        return "if " + printLam(t._0) + " then " + printLam(t._1) + " else " + printLam(t._2);
+    
+  }
+}
+
 export {
   NoRuleApplies ,
   c ,
   fresh ,
   rename ,
+  printLam ,
 }
 /* rename Not a pure module */

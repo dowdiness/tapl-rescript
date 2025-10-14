@@ -170,55 +170,6 @@ module Hoisting = {
   }
 }
 
-// Pretty printing functions
-module Print = {
-  let printAtom = (atom: ANF.atom): string => {
-    switch atom {
-    | AtomInt(i) => Int.toString(i)
-    | AtomVar(x) => x
-    | AtomGlob(x) => `@${x}`
-    }
-  }
-
-  let rec printANF = (t: ANF.t): string => {
-    switch t {
-    | Halt(atom) => `halt ${printAtom(atom)}`
-    | Fun(f, xs, e, e') => {
-        let params = xs->List.toArray->Array.joinWith(", ")
-        `fun ${f}(${params}) =\n  ${printANF(e)}\nin\n${printANF(e')}`
-      }
-    | Join(j, Some(p), e, e') => `join ${j}(${p}) =\n  ${printANF(e)}\nin\n${printANF(e')}`
-    | Join(j, None, e, e') => `join ${j} =\n  ${printANF(e)}\nin\n${printANF(e')}`
-    | Jump(j, Some(atom)) => `jump ${j}(${printAtom(atom)})`
-    | Jump(j, None) => `jump ${j}`
-    | App(r, f, vs, e) => {
-        let args = vs->List.map(printAtom)->List.toArray->Array.joinWith(", ")
-        `let ${r} = ${f}(${args}) in\n${printANF(e)}`
-      }
-    | Bop(r, Plus, x, y, e) => `let ${r} = ${printAtom(x)} + ${printAtom(y)} in\n${printANF(e)}`
-    | Bop(r, Minus, x, y, e) => `let ${r} = ${printAtom(x)} - ${printAtom(y)} in\n${printANF(e)}`
-    | If(atom, t, f) => `if ${printAtom(atom)} then\n  ${printANF(t)}\nelse\n  ${printANF(f)}`
-    | Tuple(r, vs, e) => {
-        let values = vs->List.map(printAtom)->List.toArray->Array.joinWith(", ")
-        `let ${r} = (${values}) in\n${printANF(e)}`
-      }
-    | Proj(r, x, i, e) => `let ${r} = ${x}.${Int.toString(i)} in\n${printANF(e)}`
-    }
-  }
-
-  let rec printLam = (t: Ast.t): string => {
-    switch t {
-    | Int(i) => Int.toString(i)
-    | Var(x) => x
-    | Lam(x, t) => `(λ${x}. ${printLam(t)})`
-    | App(t1, t2) => `(${printLam(t1)} ${printLam(t2)})`
-    | Bop(Plus, t1, t2) => `(${printLam(t1)} + ${printLam(t2)})`
-    | Bop(Minus, t1, t2) => `(${printLam(t1)} - ${printLam(t2)})`
-    | If(t1, t2, t3) => `if ${printLam(t1)} then ${printLam(t2)} else ${printLam(t3)}`
-    }
-  }
-}
-
 // LLVMlite Lowering
 module LLVMLowering = {
   // Phase 1: Basic arithmetic operations and primitives

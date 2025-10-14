@@ -241,27 +241,27 @@ var testConditionalNested = {
 describe("Alpha Renaming", (function () {
         test("identity function", (function () {
                 var renamed = Ast.rename(testLambda);
-                var printed = Compile.Print.printLam(renamed);
+                var printed = Ast.printLam(renamed);
                 expect(printed).toContain("λ");
                 expect(printed).toContain("x0");
               }));
         test("application", (function () {
                 var renamed = Ast.rename(testApp);
-                var printed = Compile.Print.printLam(renamed);
+                var printed = Ast.printLam(renamed);
                 expect(printed).toContain("λ");
                 expect(printed).toContain("42");
                 expect(printed).toContain("x1");
               }));
         test("binary operation", (function () {
                 var renamed = Ast.rename(testBop);
-                var printed = Compile.Print.printLam(renamed);
+                var printed = Ast.printLam(renamed);
                 expect(printed).toContain("3");
                 expect(printed).toContain("4");
                 expect(printed).toContain("+");
               }));
         test("if expression", (function () {
                 var renamed = Ast.rename(testIf);
-                var printed = Compile.Print.printLam(renamed);
+                var printed = Ast.printLam(renamed);
                 expect(printed).toContain("if");
                 expect(printed).toContain("then");
                 expect(printed).toContain("else");
@@ -271,7 +271,7 @@ describe("Alpha Renaming", (function () {
               }));
         test("nested functions preserve structure", (function () {
                 var renamed = Ast.rename(testNested);
-                var printed = Compile.Print.printLam(renamed);
+                var printed = Ast.printLam(renamed);
                 expect(printed).toContain("λ");
                 expect(printed).toContain("+");
                 expect(printed).toContain("2");
@@ -279,7 +279,7 @@ describe("Alpha Renaming", (function () {
               }));
         test("curried function maintains currying", (function () {
                 var renamed = Ast.rename(testCurried);
-                var printed = Compile.Print.printLam(renamed);
+                var printed = Ast.printLam(renamed);
                 var lambdaCount = printed.split("λ").length - 1 | 0;
                 expect(lambdaCount).toBe(2);
                 expect(printed).toContain("+");
@@ -290,14 +290,14 @@ describe("ANF Conversion", (function () {
         test("identity function produces function definition", (function () {
                 var renamed = Ast.rename(testLambda);
                 var anf = ANF.convert(renamed);
-                var printed = Compile.Print.printANF(anf);
+                var printed = ANF.printANF(anf);
                 expect(printed).toContain("fun");
                 expect(printed).toContain("halt");
               }));
         test("application produces function call", (function () {
                 var renamed = Ast.rename(testApp);
                 var anf = ANF.convert(renamed);
-                var printed = Compile.Print.printANF(anf);
+                var printed = ANF.printANF(anf);
                 expect(printed).toContain("fun");
                 expect(printed).toContain("let");
                 expect(printed).toContain("42");
@@ -305,14 +305,14 @@ describe("ANF Conversion", (function () {
         test("binary operation produces arithmetic", (function () {
                 var renamed = Ast.rename(testBop);
                 var anf = ANF.convert(renamed);
-                var printed = Compile.Print.printANF(anf);
+                var printed = ANF.printANF(anf);
                 expect(printed).toContain("3 + 4");
                 expect(printed).toContain("halt");
               }));
         test("if expression produces conditional", (function () {
                 var renamed = Ast.rename(testIf);
                 var anf = ANF.convert(renamed);
-                var printed = Compile.Print.printANF(anf);
+                var printed = ANF.printANF(anf);
                 expect(printed).toContain("if");
                 expect(printed).toContain("then");
                 expect(printed).toContain("else");
@@ -322,7 +322,7 @@ describe("ANF Conversion", (function () {
         test("nested functions produce multiple function definitions", (function () {
                 var renamed = Ast.rename(testNested);
                 var anf = ANF.convert(renamed);
-                var printed = Compile.Print.printANF(anf);
+                var printed = ANF.printANF(anf);
                 var funCount = printed.split("fun ").length - 1 | 0;
                 expect(funCount).toBeGreaterThan(1.0);
                 expect(printed).toContain("halt");
@@ -330,7 +330,7 @@ describe("ANF Conversion", (function () {
         test("complex free variables handled correctly", (function () {
                 var renamed = Ast.rename(testComplexFreeVars);
                 var anf = ANF.convert(renamed);
-                var printed = Compile.Print.printANF(anf);
+                var printed = ANF.printANF(anf);
                 expect(printed).toContain("fun");
                 expect(printed).toContain("let");
                 expect(printed).toContain("10");
@@ -389,7 +389,7 @@ describe("Closure Conversion", (function () {
                 var renamed = Ast.rename(testLambda);
                 var anf = ANF.convert(renamed);
                 var closure = ClosureConversion.convert(anf);
-                var printed = Compile.Print.printANF(closure);
+                var printed = ANF.printANF(closure);
                 expect(printed).toContain("fun");
                 expect(printed).toContain("env");
                 expect(printed).toContain("@");
@@ -398,7 +398,7 @@ describe("Closure Conversion", (function () {
                 var renamed = Ast.rename(testApp);
                 var anf = ANF.convert(renamed);
                 var closure = ClosureConversion.convert(anf);
-                var printed = Compile.Print.printANF(closure);
+                var printed = ANF.printANF(closure);
                 expect(printed).toContain("let");
                 expect(printed).toContain(".0");
                 expect(printed).toContain("42");
@@ -407,7 +407,7 @@ describe("Closure Conversion", (function () {
                 var renamed = Ast.rename(testBop);
                 var anf = ANF.convert(renamed);
                 var closure = ClosureConversion.convert(anf);
-                var printed = Compile.Print.printANF(closure);
+                var printed = ANF.printANF(closure);
                 expect(printed).toContain("3 + 4");
                 expect(printed).toContain("halt");
               }));
@@ -415,7 +415,7 @@ describe("Closure Conversion", (function () {
                 var renamed = Ast.rename(testNested);
                 var anf = ANF.convert(renamed);
                 var closure = ClosureConversion.convert(anf);
-                var printed = Compile.Print.printANF(closure);
+                var printed = ANF.printANF(closure);
                 expect(printed).toContain("env");
                 expect(printed).toContain("@");
                 expect(printed).toContain("(");
@@ -428,7 +428,7 @@ describe("Hoisting", (function () {
                 var anf = ANF.convert(renamed);
                 var closure = ClosureConversion.convert(anf);
                 var hoisted = Compile.Hoisting.hoist(closure);
-                var printed = Compile.Print.printANF(hoisted);
+                var printed = ANF.printANF(hoisted);
                 var funIndex = printed.indexOf("fun");
                 var tupleIndex = printed.indexOf("(");
                 expect(funIndex).toBeLessThan(tupleIndex);
@@ -438,7 +438,7 @@ describe("Hoisting", (function () {
                 var anf = ANF.convert(renamed);
                 var closure = ClosureConversion.convert(anf);
                 var hoisted = Compile.Hoisting.hoist(closure);
-                var printed = Compile.Print.printANF(hoisted);
+                var printed = ANF.printANF(hoisted);
                 expect(printed).toContain("fun");
                 expect(printed).toContain("let");
                 expect(printed).toContain("42");
@@ -448,7 +448,7 @@ describe("Hoisting", (function () {
                 var anf = ANF.convert(renamed);
                 var closure = ClosureConversion.convert(anf);
                 var hoisted = Compile.Hoisting.hoist(closure);
-                var printed = Compile.Print.printANF(hoisted);
+                var printed = ANF.printANF(hoisted);
                 expect(printed).toContain("3 + 4");
                 expect(printed).toContain("halt");
               }));
@@ -457,7 +457,7 @@ describe("Hoisting", (function () {
                 var anf = ANF.convert(renamed);
                 var closure = ClosureConversion.convert(anf);
                 var hoisted = Compile.Hoisting.hoist(closure);
-                var printed = Compile.Print.printANF(hoisted);
+                var printed = ANF.printANF(hoisted);
                 var lines = printed.split("\n");
                 var funLines = lines.filter(function (line) {
                       return line.includes("fun ");
@@ -951,14 +951,14 @@ describe("LLVM Lowering Phase 4", (function () {
 describe("Complete Compilation Pipeline", (function () {
         test("identity function compiles to proper ANF", (function () {
                 var compiled = Compile.Compiler.compile(testLambda);
-                var printed = Compile.Print.printANF(compiled);
+                var printed = ANF.printANF(compiled);
                 expect(printed).toContain("fun");
                 expect(printed).toContain("env");
                 expect(printed).toContain("halt");
               }));
         test("application produces function call structure", (function () {
                 var compiled = Compile.Compiler.compile(testApp);
-                var printed = Compile.Print.printANF(compiled);
+                var printed = ANF.printANF(compiled);
                 expect(printed).toContain("fun");
                 expect(printed).toContain("let");
                 expect(printed).toContain("42");
@@ -966,41 +966,41 @@ describe("Complete Compilation Pipeline", (function () {
               }));
         test("binary operation compiles to arithmetic", (function () {
                 var compiled = Compile.Compiler.compile(testBop);
-                var printed = Compile.Print.printANF(compiled);
+                var printed = ANF.printANF(compiled);
                 expect(printed).toContain("3 + 4");
                 expect(printed).toContain("halt");
               }));
         test("if expression compiles to straightline code (hoisting eliminates join points)", (function () {
                 var compiled = Compile.Compiler.compile(testIf);
-                var printed = Compile.Print.printANF(compiled);
+                var printed = ANF.printANF(compiled);
                 expect(printed).toContain("if");
                 expect(printed).not.toContain("join");
                 expect(printed).not.toContain("jump");
               }));
         test("nested functions maintain proper structure", (function () {
                 var compiled = Compile.Compiler.compile(testNested);
-                var printed = Compile.Print.printANF(compiled);
+                var printed = ANF.printANF(compiled);
                 var funCount = printed.split("fun ").length - 1 | 0;
                 expect(funCount).toBeGreaterThan(1.0);
                 expect(printed).toContain("env");
               }));
         test("curried function preserves currying", (function () {
                 var compiled = Compile.Compiler.compile(testCurried);
-                var printed = Compile.Print.printANF(compiled);
+                var printed = ANF.printANF(compiled);
                 expect(printed).toContain("fun");
                 expect(printed).toContain("+");
                 expect(printed).toContain("env");
               }));
         test("complex free variables handled correctly", (function () {
                 var compiled = Compile.Compiler.compile(testComplexFreeVars);
-                var printed = Compile.Print.printANF(compiled);
+                var printed = ANF.printANF(compiled);
                 expect(printed).toContain("fun");
                 expect(printed).toContain("10");
                 expect(printed).toContain("env");
               }));
         test("conditional nested functions compile properly (hoisting extracts functions)", (function () {
                 var compiled = Compile.Compiler.compile(testConditionalNested);
-                var printed = Compile.Print.printANF(compiled);
+                var printed = ANF.printANF(compiled);
                 expect(printed).toContain("if");
                 expect(printed).toContain("fun");
                 expect(printed).not.toContain("join");
@@ -1090,13 +1090,13 @@ describe("Integrated Compiler Pipeline Tests", (function () {
 
 describe("Print Functions", (function () {
         test("print lambda expressions with proper syntax", (function () {
-                var printed = Compile.Print.printLam(testLambda);
+                var printed = Ast.printLam(testLambda);
                 expect(printed).toContain("λ");
                 expect(printed).toContain("x");
                 expect(printed).toContain(".");
               }));
         test("print complex lambda expressions", (function () {
-                var printed = Compile.Print.printLam(testBop);
+                var printed = Ast.printLam(testBop);
                 expect(printed).toContain("(");
                 expect(printed).toContain(")");
                 expect(printed).toContain("3");
@@ -1104,7 +1104,7 @@ describe("Print Functions", (function () {
                 expect(printed).toContain("+");
               }));
         test("print ANF halt expressions", (function () {
-                var printed = Compile.Print.printANF({
+                var printed = ANF.printANF({
                       TAG: "Halt",
                       _0: {
                         TAG: "AtomInt",
@@ -1114,7 +1114,7 @@ describe("Print Functions", (function () {
                 expect(printed).toBe("halt 42");
               }));
         test("print ANF binary operations", (function () {
-                var printed = Compile.Print.printANF({
+                var printed = ANF.printANF({
                       TAG: "Bop",
                       _0: "r",
                       _1: "Plus",
@@ -1138,24 +1138,24 @@ describe("Print Functions", (function () {
                 expect(printed).toContain("halt r");
               }));
         test("print atoms correctly", (function () {
-                var atomInt = Compile.Print.printAtom({
+                var atomInt = ANF.printAtom({
                       TAG: "AtomInt",
                       _0: 42
                     });
                 expect(atomInt).toBe("42");
-                var atomVar = Compile.Print.printAtom({
+                var atomVar = ANF.printAtom({
                       TAG: "AtomVar",
                       _0: "x"
                     });
                 expect(atomVar).toBe("x");
-                var atomGlob = Compile.Print.printAtom({
+                var atomGlob = ANF.printAtom({
                       TAG: "AtomGlob",
                       _0: "f"
                     });
                 expect(atomGlob).toBe("@f");
               }));
         test("print if expressions", (function () {
-                var printed = Compile.Print.printLam(testIf);
+                var printed = Ast.printLam(testIf);
                 expect(printed).toContain("if 1 then 2 else 3");
               }));
       }));

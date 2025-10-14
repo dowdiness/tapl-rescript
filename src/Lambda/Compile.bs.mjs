@@ -389,90 +389,6 @@ var Hoisting = {
   hoist: hoist
 };
 
-function printAtom(atom) {
-  switch (atom.TAG) {
-    case "AtomInt" :
-        return atom._0.toString();
-    case "AtomVar" :
-        return atom._0;
-    case "AtomGlob" :
-        return "@" + atom._0;
-    
-  }
-}
-
-function printANF(t) {
-  switch (t.TAG) {
-    case "Halt" :
-        return "halt " + printAtom(t._0);
-    case "Fun" :
-        var params = Core__List.toArray(t._1).join(", ");
-        return "fun " + t._0 + "(" + params + ") =\n  " + printANF(t._2) + "\nin\n" + printANF(t._3);
-    case "Join" :
-        var p = t._1;
-        var j = t._0;
-        if (p !== undefined) {
-          return "join " + j + "(" + p + ") =\n  " + printANF(t._2) + "\nin\n" + printANF(t._3);
-        } else {
-          return "join " + j + " =\n  " + printANF(t._2) + "\nin\n" + printANF(t._3);
-        }
-    case "Jump" :
-        var atom = t._1;
-        var j$1 = t._0;
-        if (atom !== undefined) {
-          return "jump " + j$1 + "(" + printAtom(atom) + ")";
-        } else {
-          return "jump " + j$1;
-        }
-    case "App" :
-        var args = Core__List.toArray(Core__List.map(t._2, printAtom)).join(", ");
-        return "let " + t._0 + " = " + t._1 + "(" + args + ") in\n" + printANF(t._3);
-    case "Bop" :
-        var r = t._0;
-        if (t._1 === "Plus") {
-          return "let " + r + " = " + printAtom(t._2) + " + " + printAtom(t._3) + " in\n" + printANF(t._4);
-        } else {
-          return "let " + r + " = " + printAtom(t._2) + " - " + printAtom(t._3) + " in\n" + printANF(t._4);
-        }
-    case "If" :
-        return "if " + printAtom(t._0) + " then\n  " + printANF(t._1) + "\nelse\n  " + printANF(t._2);
-    case "Tuple" :
-        var values = Core__List.toArray(Core__List.map(t._1, printAtom)).join(", ");
-        return "let " + t._0 + " = (" + values + ") in\n" + printANF(t._2);
-    case "Proj" :
-        return "let " + t._0 + " = " + t._1 + "." + t._2.toString() + " in\n" + printANF(t._3);
-    
-  }
-}
-
-function printLam(t) {
-  switch (t.TAG) {
-    case "Int" :
-        return t._0.toString();
-    case "Var" :
-        return t._0;
-    case "Lam" :
-        return "(λ" + t._0 + ". " + printLam(t._1) + ")";
-    case "App" :
-        return "(" + printLam(t._0) + " " + printLam(t._1) + ")";
-    case "Bop" :
-        if (t._0 === "Plus") {
-          return "(" + printLam(t._1) + " + " + printLam(t._2) + ")";
-        } else {
-          return "(" + printLam(t._1) + " - " + printLam(t._2) + ")";
-        }
-    case "If" :
-        return "if " + printLam(t._0) + " then " + printLam(t._1) + " else " + printLam(t._2);
-    
-  }
-}
-
-var Print = {
-  printAtom: printAtom,
-  printANF: printANF,
-  printLam: printLam
-};
-
 function lowerPhase1(anf) {
   var instructions = {
     contents: /* [] */0
@@ -1253,7 +1169,6 @@ var Compiler = {
 
 export {
   Hoisting ,
-  Print ,
   LLVMLowering ,
   Compiler ,
 }

@@ -263,45 +263,45 @@ let testParser = () => {
 
   // Test parsing basic expressions
   let expr1 = parse("42")
-  Console.log("Parsed '42': " ++ Compile.Print.printLam(expr1))
+  Console.log("Parsed '42': " ++ Ast.printLam(expr1))
 
   let expr2 = parse("x")
-  Console.log("Parsed 'x': " ++ Compile.Print.printLam(expr2))
+  Console.log("Parsed 'x': " ++ Ast.printLam(expr2))
 
   let expr3 = parse("λx.x")
-  Console.log("Parsed 'λx.x': " ++ Compile.Print.printLam(expr3))
+  Console.log("Parsed 'λx.x': " ++ Ast.printLam(expr3))
 
   // Test parsing binary operations
   let expr4 = parse("1 + 2")
-  Console.log("Parsed '1 + 2': " ++ Compile.Print.printLam(expr4))
+  Console.log("Parsed '1 + 2': " ++ Ast.printLam(expr4))
 
   let expr5 = parse("5 - 3")
-  Console.log("Parsed '5 - 3': " ++ Compile.Print.printLam(expr5))
+  Console.log("Parsed '5 - 3': " ++ Ast.printLam(expr5))
 
   let expr6 = parse("1 + 2 + 3")
-  Console.log("Parsed '1 + 2 + 3': " ++ Compile.Print.printLam(expr6))
+  Console.log("Parsed '1 + 2 + 3': " ++ Ast.printLam(expr6))
 
   let expr7 = parse("10 - 5 + 2")
-  Console.log("Parsed '10 - 5 + 2': " ++ Compile.Print.printLam(expr7))
+  Console.log("Parsed '10 - 5 + 2': " ++ Ast.printLam(expr7))
 
   // Test parsing with parentheses
   let expr8 = parse("(1 + 2) + 3")
-  Console.log("Parsed '(1 + 2) + 3': " ++ Compile.Print.printLam(expr8))
+  Console.log("Parsed '(1 + 2) + 3': " ++ Ast.printLam(expr8))
 
   // Test lambda with binary operations
   let expr9 = parse("λx.x + 1")
-  Console.log("Parsed 'λx.x + 1': " ++ Compile.Print.printLam(expr9))
+  Console.log("Parsed 'λx.x + 1': " ++ Ast.printLam(expr9))
 
   // Test if-then-else
   let expr10 = parse("if 1 then 2 else 3")
-  Console.log("Parsed 'if 1 then 2 else 3': " ++ Compile.Print.printLam(expr10))
+  Console.log("Parsed 'if 1 then 2 else 3': " ++ Ast.printLam(expr10))
 
   // Test compilation of binary operations
   let compiled1 = parseAndCompile("1 + 2")
-  Console.log("Compiled '1 + 2': " ++ Compile.Print.printANF(compiled1))
+  Console.log("Compiled '1 + 2': " ++ ANF.printANF(compiled1))
 
   let compiled2 = parseAndCompile("λx.x + 1")
-  Console.log("Compiled 'λx.x + 1': " ++ Compile.Print.printANF(compiled2))
+  Console.log("Compiled 'λx.x + 1': " ++ ANF.printANF(compiled2))
 
   Console.log("Enhanced parser tests completed!")
 }
