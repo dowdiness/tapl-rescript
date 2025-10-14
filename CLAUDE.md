@@ -8,10 +8,13 @@ This repository contains implementations of exercises from "Types and Programmin
 
 ## Build Commands
 
+- **Build everything**: `pnpm run build` (builds both ReScript and CLI)
 - **Build ReScript**: `pnpm run res:build` or `rescript`
+- **Build CLI**: `pnpm run cli:build`
 - **Clean build artifacts**: `pnpm run res:clean`
 - **Format code**: `pnpm run res:format`
 - **Watch mode for development**: `pnpm run res:dev`
+- **Watch CLI development**: `pnpm run cli:dev`
 - **Run tests**: `pnpm run test` or `vitest`
 - **Run tests in watch mode**: `pnpm run test:watch`
 - **Run tests with UI**: `pnpm run test:ui`
@@ -101,9 +104,24 @@ ANF uses three atom types for values:
 
 ### CLI Usage
 
-The CLI (`src/Lambda/CLI.res`) compiles lambda expressions to LLVM:
+The project includes a Pastel-based CLI for easy compilation:
 
 ```bash
-node src/Lambda/CLI.bs.mjs <phase> <expression>
-# Example: node src/Lambda/CLI.bs.mjs 3 "((λx.x + 8) (12 - 5))"
+# Basic usage
+lambda compile "((λx.x + 8) (12 - 5))"
+
+# Specify LLVM phase (1-4)
+lambda compile --phase=1 "1 + 2"
+
+# Show intermediate representations
+lambda compile --ast "λx.x + 1"  # Show AST
+lambda compile --anf "λx.x + 1"  # Show ANF after hoisting
 ```
+
+The CLI is built with:
+- **Pastel**: File-based CLI framework (commands in `cli/commands/`)
+- **Ink**: React for terminal UIs
+- **TypeScript**: Type-safe CLI code
+- **Zod**: Schema validation for options/arguments
+
+The CLI executable is at `dist/cli/cli.js` after building, and is linked via `package.json` `bin` field.
