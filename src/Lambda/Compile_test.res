@@ -169,18 +169,18 @@ describe("ANF Conversion", () => {
 
 describe("Free Variables Computation", () => {
   test("simple halt", () => {
-    let fvs = FreeVars.compute(ANF.Halt(ANF.AtomVar("x")))
+    let fvs = ClosureConversion.compute(ANF.Halt(ANF.AtomVar("x")))
     expect(Belt.Set.String.has(fvs, "x"))->toBeTruthy
   })
 
   test("halt with integer", () => {
-    let fvs = FreeVars.compute(ANF.Halt(ANF.AtomInt(42)))
+    let fvs = ClosureConversion.compute(ANF.Halt(ANF.AtomInt(42)))
     expect(Belt.Set.String.size(fvs))->toBe(0)
   })
 
   test("binary operation", () => {
     let anf = ANF.Bop("r", Plus, ANF.AtomVar("x"), ANF.AtomVar("y"), ANF.Halt(ANF.AtomVar("r")))
-    let fvs = FreeVars.compute(anf)
+    let fvs = ClosureConversion.compute(anf)
     expect(Belt.Set.String.has(fvs, "x"))->toBeTruthy
     expect(Belt.Set.String.has(fvs, "y"))->toBeTruthy
   })

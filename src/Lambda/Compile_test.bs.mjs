@@ -4,6 +4,7 @@ import * as ANF from "./ANF.bs.mjs";
 import * as Ast from "./Ast.bs.mjs";
 import * as Compile from "./Compile.bs.mjs";
 import * as Belt_SetString from "rescript/lib/es6/belt_SetString.js";
+import * as ClosureConversion from "./ClosureConversion.bs.mjs";
 
 var testLambda = {
   TAG: "Lam",
@@ -338,7 +339,7 @@ describe("ANF Conversion", (function () {
 
 describe("Free Variables Computation", (function () {
         test("simple halt", (function () {
-                var fvs = Compile.FreeVars.compute({
+                var fvs = ClosureConversion.compute({
                       TAG: "Halt",
                       _0: {
                         TAG: "AtomVar",
@@ -348,7 +349,7 @@ describe("Free Variables Computation", (function () {
                 expect(Belt_SetString.has(fvs, "x")).toBeTruthy();
               }));
         test("halt with integer", (function () {
-                var fvs = Compile.FreeVars.compute({
+                var fvs = ClosureConversion.compute({
                       TAG: "Halt",
                       _0: {
                         TAG: "AtomInt",
@@ -358,7 +359,7 @@ describe("Free Variables Computation", (function () {
                 expect(Belt_SetString.size(fvs)).toBe(0);
               }));
         test("binary operation", (function () {
-                var fvs = Compile.FreeVars.compute({
+                var fvs = ClosureConversion.compute({
                       TAG: "Bop",
                       _0: "r",
                       _1: "Plus",
@@ -387,7 +388,7 @@ describe("Closure Conversion", (function () {
         test("identity function creates closure tuple", (function () {
                 var renamed = Ast.rename(testLambda);
                 var anf = ANF.convert(renamed);
-                var closure = Compile.ClosureConversion.convert(anf);
+                var closure = ClosureConversion.convert(anf);
                 var printed = Compile.Print.printANF(closure);
                 expect(printed).toContain("fun");
                 expect(printed).toContain("env");
@@ -396,7 +397,7 @@ describe("Closure Conversion", (function () {
         test("application uses closure projection", (function () {
                 var renamed = Ast.rename(testApp);
                 var anf = ANF.convert(renamed);
-                var closure = Compile.ClosureConversion.convert(anf);
+                var closure = ClosureConversion.convert(anf);
                 var printed = Compile.Print.printANF(closure);
                 expect(printed).toContain("let");
                 expect(printed).toContain(".0");
@@ -405,7 +406,7 @@ describe("Closure Conversion", (function () {
         test("binary operation unchanged", (function () {
                 var renamed = Ast.rename(testBop);
                 var anf = ANF.convert(renamed);
-                var closure = Compile.ClosureConversion.convert(anf);
+                var closure = ClosureConversion.convert(anf);
                 var printed = Compile.Print.printANF(closure);
                 expect(printed).toContain("3 + 4");
                 expect(printed).toContain("halt");
@@ -413,7 +414,7 @@ describe("Closure Conversion", (function () {
         test("nested functions create environment tuples", (function () {
                 var renamed = Ast.rename(testNested);
                 var anf = ANF.convert(renamed);
-                var closure = Compile.ClosureConversion.convert(anf);
+                var closure = ClosureConversion.convert(anf);
                 var printed = Compile.Print.printANF(closure);
                 expect(printed).toContain("env");
                 expect(printed).toContain("@");
@@ -425,7 +426,7 @@ describe("Hoisting", (function () {
         test("identity function hoists to top level", (function () {
                 var renamed = Ast.rename(testLambda);
                 var anf = ANF.convert(renamed);
-                var closure = Compile.ClosureConversion.convert(anf);
+                var closure = ClosureConversion.convert(anf);
                 var hoisted = Compile.Hoisting.hoist(closure);
                 var printed = Compile.Print.printANF(hoisted);
                 var funIndex = printed.indexOf("fun");
@@ -435,7 +436,7 @@ describe("Hoisting", (function () {
         test("application maintains function order", (function () {
                 var renamed = Ast.rename(testApp);
                 var anf = ANF.convert(renamed);
-                var closure = Compile.ClosureConversion.convert(anf);
+                var closure = ClosureConversion.convert(anf);
                 var hoisted = Compile.Hoisting.hoist(closure);
                 var printed = Compile.Print.printANF(hoisted);
                 expect(printed).toContain("fun");
@@ -445,7 +446,7 @@ describe("Hoisting", (function () {
         test("binary operation structure preserved", (function () {
                 var renamed = Ast.rename(testBop);
                 var anf = ANF.convert(renamed);
-                var closure = Compile.ClosureConversion.convert(anf);
+                var closure = ClosureConversion.convert(anf);
                 var hoisted = Compile.Hoisting.hoist(closure);
                 var printed = Compile.Print.printANF(hoisted);
                 expect(printed).toContain("3 + 4");
@@ -454,7 +455,7 @@ describe("Hoisting", (function () {
         test("complex expressions have proper function ordering", (function () {
                 var renamed = Ast.rename(testComplexFreeVars);
                 var anf = ANF.convert(renamed);
-                var closure = Compile.ClosureConversion.convert(anf);
+                var closure = ClosureConversion.convert(anf);
                 var hoisted = Compile.Hoisting.hoist(closure);
                 var printed = Compile.Print.printANF(hoisted);
                 var lines = printed.split("\n");
