@@ -119,9 +119,12 @@ function go(t) {
   switch (t.TAG) {
     case "Fun" :
         var e = t._2;
+        var xs = t._1;
         var f = t._0;
         var env = Ast.fresh("env");
-        var fvs = Core__List.fromArray(Belt_SetString.toArray(compute(e)));
+        var allFvs = compute(e);
+        var params = Belt_SetString.fromArray(Core__List.toArray(xs));
+        var fvs = Core__List.fromArray(Belt_SetString.toArray(Belt_SetString.diff(allFvs, params)));
         var addProjections = function (body, fvList, index) {
           if (fvList) {
             return {
@@ -161,7 +164,7 @@ function go(t) {
                 _0: f,
                 _1: {
                   hd: env,
-                  tl: t._1
+                  tl: xs
                 },
                 _2: transformedBody,
                 _3: closureTuple

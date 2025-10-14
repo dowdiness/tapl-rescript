@@ -369,9 +369,10 @@ module LLVMLowering = {
             | Proj(r, x, i, e) => {
                 // Project from tuple - simplified approach (assume 3-element tuples)
                 let ptrVar = `${x}_ptr_${r}`
+                let gepVar = `${r}_gep`
                 bodyInstructions := list{`%${ptrVar} = inttoptr i64 %${x} to { i64, i64, i64 }*`, ...bodyInstructions.contents}
-                bodyInstructions := list{`%${r}_gep = getelementptr { i64, i64, i64 }, { i64, i64, i64 }* %${ptrVar}, i32 0, i32 ${Int.toString(i)}`, ...bodyInstructions.contents}
-                bodyInstructions := list{`%${r} = load i64, i64* %${r}_gep`, ...bodyInstructions.contents}
+                bodyInstructions := list{`%${gepVar} = getelementptr { i64, i64, i64 }, { i64, i64, i64 }* %${ptrVar}, i32 0, i32 ${Int.toString(i)}`, ...bodyInstructions.contents}
+                bodyInstructions := list{`%${r} = load i64, i64* %${gepVar}`, ...bodyInstructions.contents}
                 generateBody(e)
               }
             | _ => failwith("Phase 3: Unsupported construct in function body")
@@ -443,9 +444,10 @@ module LLVMLowering = {
           // Project from tuple in main - we need to know the tuple size
           // For simplicity, assume all tuples have the same structure for now
           let ptrVar = `${x}_ptr_${r}`
+          let gepVar = `${r}_gep`
           mainInstructions := list{`%${ptrVar} = inttoptr i64 %${x} to { i64, i64, i64 }*`, ...mainInstructions.contents}
-          mainInstructions := list{`%${r}_gep = getelementptr { i64, i64, i64 }, { i64, i64, i64 }* %${ptrVar}, i32 0, i32 ${Int.toString(i)}`, ...mainInstructions.contents}
-          mainInstructions := list{`%${r} = load i64, i64* %${r}_gep`, ...mainInstructions.contents}
+          mainInstructions := list{`%${gepVar} = getelementptr { i64, i64, i64 }, { i64, i64, i64 }* %${ptrVar}, i32 0, i32 ${Int.toString(i)}`, ...mainInstructions.contents}
+          mainInstructions := list{`%${r} = load i64, i64* %${gepVar}`, ...mainInstructions.contents}
           extractFunctions(e)
         }
       | _ => failwith("Phase 3: Unsupported ANF construct")

@@ -106,7 +106,9 @@ let convert = {
     switch t {
     | Fun(f, xs, e, e') => {
         let env = Ast.fresh("env")
-        let fvs = compute(e)->Belt.Set.String.toArray->List.fromArray
+        let allFvs = compute(e)
+        let params = Belt.Set.String.fromArray(List.toArray(xs))
+        let fvs = Belt.Set.String.diff(allFvs, params)->Belt.Set.String.toArray->List.fromArray
 
         // Create projections for free variables in the function body
         let rec addProjections = (body, fvList, index) => {

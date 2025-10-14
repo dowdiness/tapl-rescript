@@ -813,16 +813,17 @@ function lowerPhase3(anf) {
                       var x = bodyTerm._1;
                       var r$2 = bodyTerm._0;
                       var ptrVar = x + "_ptr_" + r$2;
+                      var gepVar = r$2 + "_gep";
                       bodyInstructions.contents = {
                         hd: "%" + ptrVar + " = inttoptr i64 %" + x + " to { i64, i64, i64 }*",
                         tl: bodyInstructions.contents
                       };
                       bodyInstructions.contents = {
-                        hd: "%" + r$2 + "_gep = getelementptr { i64, i64, i64 }, { i64, i64, i64 }* %" + ptrVar + ", i32 0, i32 " + bodyTerm._2.toString(),
+                        hd: "%" + gepVar + " = getelementptr { i64, i64, i64 }, { i64, i64, i64 }* %" + ptrVar + ", i32 0, i32 " + bodyTerm._2.toString(),
                         tl: bodyInstructions.contents
                       };
                       bodyInstructions.contents = {
-                        hd: "%" + r$2 + " = load i64, i64* %" + r$2 + "_gep",
+                        hd: "%" + r$2 + " = load i64, i64* %" + gepVar,
                         tl: bodyInstructions.contents
                       };
                       _bodyTerm = bodyTerm._3;
@@ -907,16 +908,17 @@ function lowerPhase3(anf) {
             var x$2 = t._1;
             var r$2 = t._0;
             var ptrVar = x$2 + "_ptr_" + r$2;
+            var gepVar = r$2 + "_gep";
             mainInstructions.contents = {
               hd: "%" + ptrVar + " = inttoptr i64 %" + x$2 + " to { i64, i64, i64 }*",
               tl: mainInstructions.contents
             };
             mainInstructions.contents = {
-              hd: "%" + r$2 + "_gep = getelementptr { i64, i64, i64 }, { i64, i64, i64 }* %" + ptrVar + ", i32 0, i32 " + t._2.toString(),
+              hd: "%" + gepVar + " = getelementptr { i64, i64, i64 }, { i64, i64, i64 }* %" + ptrVar + ", i32 0, i32 " + t._2.toString(),
               tl: mainInstructions.contents
             };
             mainInstructions.contents = {
-              hd: "%" + r$2 + " = load i64, i64* %" + r$2 + "_gep",
+              hd: "%" + r$2 + " = load i64, i64* %" + gepVar,
               tl: mainInstructions.contents
             };
             _t = t._3;
