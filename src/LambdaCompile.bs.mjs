@@ -3,6 +3,7 @@
 import * as Core__List from "@rescript/core/src/Core__List.bs.mjs";
 import * as Core__Array from "@rescript/core/src/Core__Array.bs.mjs";
 import * as PervasivesU from "rescript/lib/es6/pervasivesU.js";
+import * as Core__Option from "@rescript/core/src/Core__Option.bs.mjs";
 import * as Belt_MapString from "rescript/lib/es6/belt_MapString.js";
 import * as Belt_SetString from "rescript/lib/es6/belt_SetString.js";
 import * as Caml_exceptions from "rescript/lib/es6/caml_exceptions.js";
@@ -469,190 +470,383 @@ var ClosureConversion = {
   convert: go$2
 };
 
-function collectBindings(t) {
-  switch (t.TAG) {
-    case "Fun" :
-        var match = collectBindings(t._2);
-        var match$1 = collectBindings(t._3);
-        var funBinding_0 = t._0;
-        var funBinding_1 = t._1;
-        var funBinding_2 = match[1];
-        var funBinding = {
-          TAG: "FunBinding",
-          _0: funBinding_0,
-          _1: funBinding_1,
-          _2: funBinding_2
-        };
-        return [
-                {
-                  hd: funBinding,
-                  tl: Core__List.concat(match[0], match$1[0])
-                },
-                match$1[1]
-              ];
-    case "Join" :
-        var match$2 = collectBindings(t._2);
-        var match$3 = collectBindings(t._3);
-        return [
-                Core__List.concat(match$2[0], match$3[0]),
-                {
-                  TAG: "Join",
-                  _0: t._0,
-                  _1: t._1,
-                  _2: match$2[1],
-                  _3: match$3[1]
-                }
-              ];
+function substituteVar(term, $$var, replacement) {
+  var substAtom = function (atom) {
+    switch (atom.TAG) {
+      case "AtomVar" :
+          if (atom._0 === $$var) {
+            return replacement;
+          } else {
+            return atom;
+          }
+      case "AtomInt" :
+      case "AtomGlob" :
+          return atom;
+      
+    }
+  };
+  switch (term.TAG) {
     case "Halt" :
-    case "Jump" :
-        return [
-                /* [] */0,
-                t
-              ];
-    case "App" :
-        var match$4 = collectBindings(t._3);
-        return [
-                match$4[0],
-                {
-                  TAG: "App",
-                  _0: t._0,
-                  _1: t._1,
-                  _2: t._2,
-                  _3: match$4[1]
-                }
-              ];
-    case "Bop" :
-        var r = t._0;
-        var match$5 = collectBindings(t._4);
-        var varBinding_1 = {
-          TAG: "AtomVar",
-          _0: r
-        };
-        var varBinding = {
-          TAG: "VarBinding",
-          _0: r,
-          _1: varBinding_1
-        };
-        return [
-                {
-                  hd: varBinding,
-                  tl: match$5[0]
-                },
-                {
-                  TAG: "Bop",
-                  _0: r,
-                  _1: t._1,
-                  _2: t._2,
-                  _3: t._3,
-                  _4: match$5[1]
-                }
-              ];
-    case "If" :
-        var match$6 = collectBindings(t._1);
-        var match$7 = collectBindings(t._2);
-        return [
-                Core__List.concat(match$6[0], match$7[0]),
-                {
-                  TAG: "If",
-                  _0: t._0,
-                  _1: match$6[1],
-                  _2: match$7[1]
-                }
-              ];
-    case "Tuple" :
-        var match$8 = collectBindings(t._2);
-        var tupleBinding_0 = t._0;
-        var tupleBinding_1 = t._1;
-        var tupleBinding = {
-          TAG: "TupleBinding",
-          _0: tupleBinding_0,
-          _1: tupleBinding_1
-        };
-        return [
-                {
-                  hd: tupleBinding,
-                  tl: match$8[0]
-                },
-                match$8[1]
-              ];
-    case "Proj" :
-        var match$9 = collectBindings(t._3);
-        var varBinding_0 = t._0;
-        var varBinding_1$1 = {
-          TAG: "AtomVar",
-          _0: t._1
-        };
-        var varBinding$1 = {
-          TAG: "VarBinding",
-          _0: varBinding_0,
-          _1: varBinding_1$1
-        };
-        return [
-                {
-                  hd: varBinding$1,
-                  tl: match$9[0]
-                },
-                match$9[1]
-              ];
-    
-  }
-}
-
-function reconstructWithBindings(bindings, body) {
-  if (!bindings) {
-    return body;
-  }
-  var match = bindings.hd;
-  switch (match.TAG) {
-    case "FunBinding" :
-        var restBody = reconstructWithBindings(bindings.tl, body);
         return {
-                TAG: "Fun",
-                _0: match._0,
-                _1: match._1,
-                _2: match._2,
-                _3: restBody
+                TAG: "Halt",
+                _0: substAtom(term._0)
               };
-    case "VarBinding" :
-        var restBody$1 = reconstructWithBindings(bindings.tl, body);
-        switch (match._1.TAG) {
-          case "AtomInt" :
-          case "AtomVar" :
-          case "AtomGlob" :
-              return restBody$1;
-          
+    case "Fun" :
+        var cont = term._3;
+        var body = term._2;
+        var params = term._1;
+        var f = term._0;
+        if (Core__List.some(params, (function (p) {
+                  return p === $$var;
+                })) || f === $$var) {
+          return {
+                  TAG: "Fun",
+                  _0: f,
+                  _1: params,
+                  _2: body,
+                  _3: substituteVar(cont, $$var, replacement)
+                };
+        } else {
+          return {
+                  TAG: "Fun",
+                  _0: f,
+                  _1: params,
+                  _2: substituteVar(body, $$var, replacement),
+                  _3: substituteVar(cont, $$var, replacement)
+                };
         }
-    case "TupleBinding" :
-        var restBody$2 = reconstructWithBindings(bindings.tl, body);
+    case "Join" :
         return {
-                TAG: "Tuple",
-                _0: match._0,
-                _1: match._1,
-                _2: restBody$2
+                TAG: "Join",
+                _0: term._0,
+                _1: term._1,
+                _2: substituteVar(term._2, $$var, replacement),
+                _3: substituteVar(term._3, $$var, replacement)
               };
-    
-  }
-}
-
-function hoist(t) {
-  var match = collectBindings(t);
-  var match$1 = Core__List.partition(match[0], (function (binding) {
-          switch (binding.TAG) {
-            case "FunBinding" :
-                return true;
-            case "VarBinding" :
-            case "TupleBinding" :
-                return false;
+    case "Jump" :
+        return {
+                TAG: "Jump",
+                _0: term._0,
+                _1: Core__Option.map(term._1, substAtom)
+              };
+    case "App" :
+        var f$1 = term._1;
+        var newArgs = Core__List.map(term._2, substAtom);
+        var newF;
+        if (f$1 === $$var) {
+          switch (replacement.TAG) {
+            case "AtomVar" :
+                newF = replacement._0;
+                break;
+            case "AtomInt" :
+            case "AtomGlob" :
+                newF = f$1;
+                break;
             
           }
-        }));
-  var orderedBindings = Core__List.concat(match$1[0], match$1[1]);
-  return reconstructWithBindings(orderedBindings, match[1]);
+        } else {
+          newF = f$1;
+        }
+        return {
+                TAG: "App",
+                _0: term._0,
+                _1: newF,
+                _2: newArgs,
+                _3: substituteVar(term._3, $$var, replacement)
+              };
+    case "Bop" :
+        return {
+                TAG: "Bop",
+                _0: term._0,
+                _1: term._1,
+                _2: substAtom(term._2),
+                _3: substAtom(term._3),
+                _4: substituteVar(term._4, $$var, replacement)
+              };
+    case "If" :
+        return {
+                TAG: "If",
+                _0: substAtom(term._0),
+                _1: substituteVar(term._1, $$var, replacement),
+                _2: substituteVar(term._2, $$var, replacement)
+              };
+    case "Tuple" :
+        return {
+                TAG: "Tuple",
+                _0: term._0,
+                _1: Core__List.map(term._1, substAtom),
+                _2: substituteVar(term._2, $$var, replacement)
+              };
+    case "Proj" :
+        var x = term._1;
+        var newX;
+        if (x === $$var) {
+          switch (replacement.TAG) {
+            case "AtomVar" :
+                newX = replacement._0;
+                break;
+            case "AtomInt" :
+            case "AtomGlob" :
+                newX = x;
+                break;
+            
+          }
+        } else {
+          newX = x;
+        }
+        return {
+                TAG: "Proj",
+                _0: term._0,
+                _1: newX,
+                _2: term._2,
+                _3: substituteVar(term._3, $$var, replacement)
+              };
+    
+  }
+}
+
+function collectJoinPoints(term) {
+  var joinPoints = {
+    contents: undefined
+  };
+  var collect = function (_t) {
+    while(true) {
+      var t = _t;
+      switch (t.TAG) {
+        case "Fun" :
+            collect(t._2);
+            _t = t._3;
+            continue ;
+        case "Join" :
+            var body = t._2;
+            var j = t._0;
+            var jp_param = t._1;
+            var jp = {
+              name: j,
+              param: jp_param,
+              body: body
+            };
+            joinPoints.contents = Belt_MapString.set(joinPoints.contents, j, jp);
+            collect(body);
+            _t = t._3;
+            continue ;
+        case "Halt" :
+        case "Jump" :
+            return ;
+        case "Bop" :
+            _t = t._4;
+            continue ;
+        case "If" :
+            collect(t._1);
+            _t = t._2;
+            continue ;
+        case "Tuple" :
+            _t = t._2;
+            continue ;
+        case "App" :
+        case "Proj" :
+            _t = t._3;
+            continue ;
+        
+      }
+    };
+  };
+  collect(term);
+  return joinPoints.contents;
+}
+
+function eliminateJoinPoints(term) {
+  var joinPoints = collectJoinPoints(term);
+  var eliminate = function (_t) {
+    while(true) {
+      var t = _t;
+      switch (t.TAG) {
+        case "Halt" :
+            return t;
+        case "Fun" :
+            return {
+                    TAG: "Fun",
+                    _0: t._0,
+                    _1: t._1,
+                    _2: eliminate(t._2),
+                    _3: eliminate(t._3)
+                  };
+        case "Join" :
+            _t = t._3;
+            continue ;
+        case "Jump" :
+            var arg = t._1;
+            var match = Belt_MapString.get(joinPoints, t._0);
+            if (match === undefined) {
+              return t;
+            }
+            var p = match.param;
+            if (p !== undefined) {
+              var body = match.body;
+              if (arg !== undefined) {
+                _t = substituteVar(body, p, arg);
+                continue ;
+              }
+              _t = body;
+              continue ;
+            }
+            _t = match.body;
+            continue ;
+        case "App" :
+            return {
+                    TAG: "App",
+                    _0: t._0,
+                    _1: t._1,
+                    _2: t._2,
+                    _3: eliminate(t._3)
+                  };
+        case "Bop" :
+            return {
+                    TAG: "Bop",
+                    _0: t._0,
+                    _1: t._1,
+                    _2: t._2,
+                    _3: t._3,
+                    _4: eliminate(t._4)
+                  };
+        case "If" :
+            return {
+                    TAG: "If",
+                    _0: t._0,
+                    _1: eliminate(t._1),
+                    _2: eliminate(t._2)
+                  };
+        case "Tuple" :
+            return {
+                    TAG: "Tuple",
+                    _0: t._0,
+                    _1: t._1,
+                    _2: eliminate(t._2)
+                  };
+        case "Proj" :
+            return {
+                    TAG: "Proj",
+                    _0: t._0,
+                    _1: t._1,
+                    _2: t._2,
+                    _3: eliminate(t._3)
+                  };
+        
+      }
+    };
+  };
+  return eliminate(term);
+}
+
+function extractFunctions(term) {
+  var functions = {
+    contents: /* [] */0
+  };
+  var extract = function (_t) {
+    while(true) {
+      var t = _t;
+      switch (t.TAG) {
+        case "Fun" :
+            var hoistedBody = extract(t._2);
+            functions.contents = {
+              hd: [
+                t._0,
+                t._1,
+                hoistedBody
+              ],
+              tl: functions.contents
+            };
+            _t = t._3;
+            continue ;
+        case "Join" :
+            return {
+                    TAG: "Join",
+                    _0: t._0,
+                    _1: t._1,
+                    _2: extract(t._2),
+                    _3: extract(t._3)
+                  };
+        case "Halt" :
+        case "Jump" :
+            return t;
+        case "App" :
+            return {
+                    TAG: "App",
+                    _0: t._0,
+                    _1: t._1,
+                    _2: t._2,
+                    _3: extract(t._3)
+                  };
+        case "Bop" :
+            return {
+                    TAG: "Bop",
+                    _0: t._0,
+                    _1: t._1,
+                    _2: t._2,
+                    _3: t._3,
+                    _4: extract(t._4)
+                  };
+        case "If" :
+            return {
+                    TAG: "If",
+                    _0: t._0,
+                    _1: extract(t._1),
+                    _2: extract(t._2)
+                  };
+        case "Tuple" :
+            return {
+                    TAG: "Tuple",
+                    _0: t._0,
+                    _1: t._1,
+                    _2: extract(t._2)
+                  };
+        case "Proj" :
+            return {
+                    TAG: "Proj",
+                    _0: t._0,
+                    _1: t._1,
+                    _2: t._2,
+                    _3: extract(t._3)
+                  };
+        
+      }
+    };
+  };
+  var mainFlow = extract(term);
+  return [
+          Core__List.reverse(functions.contents),
+          mainFlow
+        ];
+}
+
+function reconstructWithFunctions(functions, mainFlow) {
+  var reconstruct = function (funcs, acc) {
+    if (!funcs) {
+      return acc;
+    }
+    var match = funcs.hd;
+    return {
+            TAG: "Fun",
+            _0: match[0],
+            _1: match[1],
+            _2: match[2],
+            _3: reconstruct(funcs.tl, acc)
+          };
+  };
+  return reconstruct(functions, mainFlow);
+}
+
+function hoist(term) {
+  var param = extractFunctions(eliminateJoinPoints(term));
+  return reconstructWithFunctions(param[0], param[1]);
 }
 
 var Hoisting = {
-  collectBindings: collectBindings,
-  reconstructWithBindings: reconstructWithBindings,
+  substituteVar: substituteVar,
+  collectJoinPoints: collectJoinPoints,
+  eliminateJoinPoints: eliminateJoinPoints,
+  extractFunctions: extractFunctions,
+  reconstructWithFunctions: reconstructWithFunctions,
   hoist: hoist
 };
 
@@ -1419,6 +1613,18 @@ function lowerPhase4(anf) {
             };
             _t = t._3;
             continue ;
+        case "Join" :
+            return PervasivesU.failwith("Code must be straightline!");
+        case "Jump" :
+            if (t._1 !== undefined) {
+              return PervasivesU.failwith("Phase 4: Unsupported ANF construct");
+            } else {
+              mainInstructions.contents = {
+                hd: "br label %" + t._0,
+                tl: mainInstructions.contents
+              };
+              return ;
+            }
         case "Bop" :
             var r = t._0;
             if (t._1 === "Plus") {

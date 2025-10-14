@@ -418,12 +418,13 @@ describe("Complete Compilation Pipeline", () => {
     expect(printed)->toContain("halt")
   })
 
-  test("if expression compiles to control flow", () => {
+  test("if expression compiles to straightline code (hoisting eliminates join points)", () => {
     let compiled = Compiler.compile(testIf)
     let printed = Print.printANF(compiled)
     expect(printed)->toContain("if")
-    expect(printed)->toContain("join")
-    expect(printed)->toContain("jump")
+    // After proper hoisting, join points should be eliminated
+    expect(printed)->not->toContain("join")
+    expect(printed)->not->toContain("jump")
   })
 
   test("nested functions maintain proper structure", () => {
@@ -450,12 +451,13 @@ describe("Complete Compilation Pipeline", () => {
     expect(printed)->toContain("env")
   })
 
-  test("conditional nested functions compile properly", () => {
+  test("conditional nested functions compile properly (hoisting extracts functions)", () => {
     let compiled = Compiler.compile(testConditionalNested)
     let printed = Print.printANF(compiled)
     expect(printed)->toContain("if")
     expect(printed)->toContain("fun")
-    expect(printed)->toContain("join")
+    // After proper hoisting, join points should be eliminated
+    expect(printed)->not->toContain("join")
   })
 })
 
@@ -472,9 +474,12 @@ describe("Integrated Compiler Pipeline Tests", () => {
     expect(() => Compiler.compileToLLVM(testPipelineFunc, 2))->toThrow
   })
 
-  test("complete pipeline - conditional", () => {
+  test("complete pipeline - conditional (now works with corrected hoisting)", () => {
     let testPipelineIf = Lam.If(Lam.Int(1), Lam.Bop(Plus, Lam.Int(10), Lam.Int(5)), Lam.Bop(Minus, Lam.Int(20), Lam.Int(3)))
-    expect(() => Compiler.compileToLLVM(testPipelineIf, 4))->toThrow
+    // Should no longer throw because hoisting creates straightline code
+    let llvm = Compiler.compileToLLVM(testPipelineIf, 4)
+    expect(llvm)->toContain("icmp ne i64 1, 0")
+    expect(llvm)->toContain("define i64 @main()")
   })
 })
 
@@ -524,3 +529,11 @@ describe("Print Functions", () => {
     expect(printed)->toContain("if 1 then 2 else 3")
   })
 })
+
+// test("complete pipeline - compileToLLVM", () => {
+//   let anf = Compiler.compile(testIf)
+//   let compiled = Compiler.compileToLLVM(testIf, 4)
+//   Console.log(Print.printLam(testIf))
+//   Console.log(Print.printANF(anf))
+//   Console.log(compiled)
+// })

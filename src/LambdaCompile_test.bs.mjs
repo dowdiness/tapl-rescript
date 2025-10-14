@@ -967,12 +967,12 @@ describe("Complete Compilation Pipeline", (function () {
                 expect(printed).toContain("3 + 4");
                 expect(printed).toContain("halt");
               }));
-        test("if expression compiles to control flow", (function () {
+        test("if expression compiles to straightline code (hoisting eliminates join points)", (function () {
                 var compiled = LambdaCompile.Compiler.compile(testIf);
                 var printed = LambdaCompile.Print.printANF(compiled);
                 expect(printed).toContain("if");
-                expect(printed).toContain("join");
-                expect(printed).toContain("jump");
+                expect(printed).not.toContain("join");
+                expect(printed).not.toContain("jump");
               }));
         test("nested functions maintain proper structure", (function () {
                 var compiled = LambdaCompile.Compiler.compile(testNested);
@@ -995,12 +995,12 @@ describe("Complete Compilation Pipeline", (function () {
                 expect(printed).toContain("10");
                 expect(printed).toContain("env");
               }));
-        test("conditional nested functions compile properly", (function () {
+        test("conditional nested functions compile properly (hoisting extracts functions)", (function () {
                 var compiled = LambdaCompile.Compiler.compile(testConditionalNested);
                 var printed = LambdaCompile.Print.printANF(compiled);
                 expect(printed).toContain("if");
                 expect(printed).toContain("fun");
-                expect(printed).toContain("join");
+                expect(printed).not.toContain("join");
               }));
       }));
 
@@ -1048,40 +1048,40 @@ describe("Integrated Compiler Pipeline Tests", (function () {
                                   }, 2);
                       }).toThrow();
               }));
-        test("complete pipeline - conditional", (function () {
-                expect(function () {
-                        return LambdaCompile.Compiler.compileToLLVM({
-                                    TAG: "If",
-                                    _0: {
-                                      TAG: "Int",
-                                      _0: 1
-                                    },
-                                    _1: {
-                                      TAG: "Bop",
-                                      _0: "Plus",
-                                      _1: {
-                                        TAG: "Int",
-                                        _0: 10
-                                      },
-                                      _2: {
-                                        TAG: "Int",
-                                        _0: 5
-                                      }
-                                    },
-                                    _2: {
-                                      TAG: "Bop",
-                                      _0: "Minus",
-                                      _1: {
-                                        TAG: "Int",
-                                        _0: 20
-                                      },
-                                      _2: {
-                                        TAG: "Int",
-                                        _0: 3
-                                      }
-                                    }
-                                  }, 4);
-                      }).toThrow();
+        test("complete pipeline - conditional (now works with corrected hoisting)", (function () {
+                var llvm = LambdaCompile.Compiler.compileToLLVM({
+                      TAG: "If",
+                      _0: {
+                        TAG: "Int",
+                        _0: 1
+                      },
+                      _1: {
+                        TAG: "Bop",
+                        _0: "Plus",
+                        _1: {
+                          TAG: "Int",
+                          _0: 10
+                        },
+                        _2: {
+                          TAG: "Int",
+                          _0: 5
+                        }
+                      },
+                      _2: {
+                        TAG: "Bop",
+                        _0: "Minus",
+                        _1: {
+                          TAG: "Int",
+                          _0: 20
+                        },
+                        _2: {
+                          TAG: "Int",
+                          _0: 3
+                        }
+                      }
+                    }, 4);
+                expect(llvm).toContain("icmp ne i64 1, 0");
+                expect(llvm).toContain("define i64 @main()");
               }));
       }));
 
