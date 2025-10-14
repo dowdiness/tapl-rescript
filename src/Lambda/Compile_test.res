@@ -1,5 +1,5 @@
 open Vitest
-open LambdaCompile
+open Compile
 
 // Test cases
 let testLambda = Lam.Lam("x", Lam.Var("x"))

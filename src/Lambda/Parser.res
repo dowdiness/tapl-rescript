@@ -144,30 +144,30 @@ let expect = (parser: parser, expected: token): parser => {
 }
 
 // Enhanced parser with binary operators and proper precedence
-let parse = (input: string): LambdaCompile.Lam.t => {
+let parse = (input: string): Compile.Lam.t => {
   let tokens = tokenize(input)
   let parser = makeParser(tokens)
 
   // Recursive descent parser with proper precedence
-  let rec parseExpression = (parser: parser): (parser, LambdaCompile.Lam.t) => {
+  let rec parseExpression = (parser: parser): (parser, Compile.Lam.t) => {
     parseBinaryOp(parser)
   }
 
   // Parse binary operations with left associativity (lowest precedence)
-  and parseBinaryOp = (parser: parser): (parser, LambdaCompile.Lam.t) => {
+  and parseBinaryOp = (parser: parser): (parser, Compile.Lam.t) => {
     let (parser, left) = parseApplication(parser)
 
-    let rec loop = (parser: parser, acc: LambdaCompile.Lam.t): (parser, LambdaCompile.Lam.t) => {
+    let rec loop = (parser: parser, acc: Compile.Lam.t): (parser, Compile.Lam.t) => {
       switch peek(parser) {
       | Plus => {
           let parser = advance(parser)
           let (parser, right) = parseApplication(parser)
-          loop(parser, LambdaCompile.Lam.Bop(LambdaCompile.Plus, acc, right))
+          loop(parser, Compile.Lam.Bop(Compile.Plus, acc, right))
         }
       | Minus => {
           let parser = advance(parser)
           let (parser, right) = parseApplication(parser)
-          loop(parser, LambdaCompile.Lam.Bop(LambdaCompile.Minus, acc, right))
+          loop(parser, Compile.Lam.Bop(Compile.Minus, acc, right))
         }
       | _ => (parser, acc)
       }
@@ -177,14 +177,14 @@ let parse = (input: string): LambdaCompile.Lam.t => {
   }
 
   // Parse function application (higher precedence than binary ops)
-  and parseApplication = (parser: parser): (parser, LambdaCompile.Lam.t) => {
+  and parseApplication = (parser: parser): (parser, Compile.Lam.t) => {
     let (parser, first) = parseAtom(parser)
 
-    let rec loop = (parser: parser, acc: LambdaCompile.Lam.t): (parser, LambdaCompile.Lam.t) => {
+    let rec loop = (parser: parser, acc: Compile.Lam.t): (parser, Compile.Lam.t) => {
       switch peek(parser) {
       | LeftParen | Identifier(_) | Integer(_) | Lambda => {
           let (parser, next) = parseAtom(parser)
-          loop(parser, LambdaCompile.Lam.App(acc, next))
+          loop(parser, Compile.Lam.App(acc, next))
         }
       | _ => (parser, acc)
       }
@@ -194,10 +194,10 @@ let parse = (input: string): LambdaCompile.Lam.t => {
   }
 
   // Parse atomic expressions (highest precedence)
-  and parseAtom = (parser: parser): (parser, LambdaCompile.Lam.t) => {
+  and parseAtom = (parser: parser): (parser, Compile.Lam.t) => {
     switch peek(parser) {
-    | Integer(n) => (advance(parser), LambdaCompile.Lam.Int(n))
-    | Identifier(name) => (advance(parser), LambdaCompile.Lam.Var(name))
+    | Integer(n) => (advance(parser), Compile.Lam.Int(n))
+    | Identifier(name) => (advance(parser), Compile.Lam.Var(name))
     | Lambda => {
         let parser = advance(parser)
         switch peek(parser) {
@@ -205,7 +205,7 @@ let parse = (input: string): LambdaCompile.Lam.t => {
             let parser = advance(parser)
             let parser = expect(parser, Dot)
             let (parser, body) = parseExpression(parser)
-            (parser, LambdaCompile.Lam.Lam(param, body))
+            (parser, Compile.Lam.Lam(param, body))
           }
         | _ => raise(ParseError("Expected parameter after λ"))
         }
@@ -217,7 +217,7 @@ let parse = (input: string): LambdaCompile.Lam.t => {
         let (parser, thenExpr) = parseExpression(parser)
         let parser = expect(parser, Else)
         let (parser, elseExpr) = parseExpression(parser)
-        (parser, LambdaCompile.Lam.If(condition, thenExpr, elseExpr))
+        (parser, Compile.Lam.If(condition, thenExpr, elseExpr))
       }
     | LeftParen => {
         let parser = advance(parser)
@@ -239,12 +239,12 @@ let parse = (input: string): LambdaCompile.Lam.t => {
 }
 
 // Convenience functions
-let parseAndCompile = (input: string): LambdaCompile.ANF.t => {
-  input->parse->LambdaCompile.Compiler.compile
+let parseAndCompile = (input: string): Compile.ANF.t => {
+  input->parse->Compile.Compiler.compile
 }
 
 let parseAndCompileToLLVM = (input: string, phase: int): string => {
-  input->parse->LambdaCompile.Compiler.compileToLLVM(phase)
+  input->parse->Compile.Compiler.compileToLLVM(phase)
 }
 
 // Test the parser with binary operators
@@ -263,45 +263,45 @@ let testParser = () => {
 
   // Test parsing basic expressions
   let expr1 = parse("42")
-  Console.log("Parsed '42': " ++ LambdaCompile.Print.printLam(expr1))
+  Console.log("Parsed '42': " ++ Compile.Print.printLam(expr1))
 
   let expr2 = parse("x")
-  Console.log("Parsed 'x': " ++ LambdaCompile.Print.printLam(expr2))
+  Console.log("Parsed 'x': " ++ Compile.Print.printLam(expr2))
 
   let expr3 = parse("λx.x")
-  Console.log("Parsed 'λx.x': " ++ LambdaCompile.Print.printLam(expr3))
+  Console.log("Parsed 'λx.x': " ++ Compile.Print.printLam(expr3))
 
   // Test parsing binary operations
   let expr4 = parse("1 + 2")
-  Console.log("Parsed '1 + 2': " ++ LambdaCompile.Print.printLam(expr4))
+  Console.log("Parsed '1 + 2': " ++ Compile.Print.printLam(expr4))
 
   let expr5 = parse("5 - 3")
-  Console.log("Parsed '5 - 3': " ++ LambdaCompile.Print.printLam(expr5))
+  Console.log("Parsed '5 - 3': " ++ Compile.Print.printLam(expr5))
 
   let expr6 = parse("1 + 2 + 3")
-  Console.log("Parsed '1 + 2 + 3': " ++ LambdaCompile.Print.printLam(expr6))
+  Console.log("Parsed '1 + 2 + 3': " ++ Compile.Print.printLam(expr6))
 
   let expr7 = parse("10 - 5 + 2")
-  Console.log("Parsed '10 - 5 + 2': " ++ LambdaCompile.Print.printLam(expr7))
+  Console.log("Parsed '10 - 5 + 2': " ++ Compile.Print.printLam(expr7))
 
   // Test parsing with parentheses
   let expr8 = parse("(1 + 2) + 3")
-  Console.log("Parsed '(1 + 2) + 3': " ++ LambdaCompile.Print.printLam(expr8))
+  Console.log("Parsed '(1 + 2) + 3': " ++ Compile.Print.printLam(expr8))
 
   // Test lambda with binary operations
   let expr9 = parse("λx.x + 1")
-  Console.log("Parsed 'λx.x + 1': " ++ LambdaCompile.Print.printLam(expr9))
+  Console.log("Parsed 'λx.x + 1': " ++ Compile.Print.printLam(expr9))
 
   // Test if-then-else
   let expr10 = parse("if 1 then 2 else 3")
-  Console.log("Parsed 'if 1 then 2 else 3': " ++ LambdaCompile.Print.printLam(expr10))
+  Console.log("Parsed 'if 1 then 2 else 3': " ++ Compile.Print.printLam(expr10))
 
   // Test compilation of binary operations
   let compiled1 = parseAndCompile("1 + 2")
-  Console.log("Compiled '1 + 2': " ++ LambdaCompile.Print.printANF(compiled1))
+  Console.log("Compiled '1 + 2': " ++ Compile.Print.printANF(compiled1))
 
   let compiled2 = parseAndCompile("λx.x + 1")
-  Console.log("Compiled 'λx.x + 1': " ++ LambdaCompile.Print.printANF(compiled2))
+  Console.log("Compiled 'λx.x + 1': " ++ Compile.Print.printANF(compiled2))
 
   Console.log("Enhanced parser tests completed!")
 }

@@ -8,7 +8,7 @@ import * as Belt_MapString from "rescript/lib/es6/belt_MapString.js";
 import * as Belt_SetString from "rescript/lib/es6/belt_SetString.js";
 import * as Caml_exceptions from "rescript/lib/es6/caml_exceptions.js";
 
-var NoRuleApplies = /* @__PURE__ */Caml_exceptions.create("LambdaCompile.Lam.NoRuleApplies");
+var NoRuleApplies = /* @__PURE__ */Caml_exceptions.create("Compile.Lam.NoRuleApplies");
 
 var c = {
   contents: -1
