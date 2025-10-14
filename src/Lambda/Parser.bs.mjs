@@ -260,6 +260,83 @@ function parse(input) {
     tokens: tokens,
     position: 0
   };
+  var parseBinaryOp = function (parser) {
+    var match = parseApplication(parser);
+    var _parser = match[0];
+    var _acc = match[1];
+    while(true) {
+      var acc = _acc;
+      var parser$1 = _parser;
+      var match$1 = peek(parser$1);
+      if (typeof match$1 === "object") {
+        return [
+                parser$1,
+                acc
+              ];
+      }
+      switch (match$1) {
+        case "Plus" :
+            var parser$2 = advance(parser$1);
+            var match$2 = parseApplication(parser$2);
+            _acc = {
+              TAG: "Bop",
+              _0: "Plus",
+              _1: acc,
+              _2: match$2[1]
+            };
+            _parser = match$2[0];
+            continue ;
+        case "Minus" :
+            var parser$3 = advance(parser$1);
+            var match$3 = parseApplication(parser$3);
+            _acc = {
+              TAG: "Bop",
+              _0: "Minus",
+              _1: acc,
+              _2: match$3[1]
+            };
+            _parser = match$3[0];
+            continue ;
+        default:
+          return [
+                  parser$1,
+                  acc
+                ];
+      }
+    };
+  };
+  var parseApplication = function (parser) {
+    var match = parseAtom(parser);
+    var _parser = match[0];
+    var _acc = match[1];
+    while(true) {
+      var acc = _acc;
+      var parser$1 = _parser;
+      var match$1 = peek(parser$1);
+      if (typeof match$1 !== "object") {
+        switch (match$1) {
+          case "Lambda" :
+          case "LeftParen" :
+              break;
+          default:
+            return [
+                    parser$1,
+                    acc
+                  ];
+        }
+      } else {
+        match$1.TAG === "Identifier";
+      }
+      var match$2 = parseAtom(parser$1);
+      _acc = {
+        TAG: "App",
+        _0: acc,
+        _1: match$2[1]
+      };
+      _parser = match$2[0];
+      continue ;
+    };
+  };
   var parseAtom = function (parser) {
     var n = peek(parser);
     if (typeof n === "object") {
@@ -341,83 +418,6 @@ function parse(input) {
               Error: new Error()
             };
     }
-  };
-  var parseBinaryOp = function (parser) {
-    var match = parseApplication(parser);
-    var _parser = match[0];
-    var _acc = match[1];
-    while(true) {
-      var acc = _acc;
-      var parser$1 = _parser;
-      var match$1 = peek(parser$1);
-      if (typeof match$1 === "object") {
-        return [
-                parser$1,
-                acc
-              ];
-      }
-      switch (match$1) {
-        case "Plus" :
-            var parser$2 = advance(parser$1);
-            var match$2 = parseApplication(parser$2);
-            _acc = {
-              TAG: "Bop",
-              _0: "Plus",
-              _1: acc,
-              _2: match$2[1]
-            };
-            _parser = match$2[0];
-            continue ;
-        case "Minus" :
-            var parser$3 = advance(parser$1);
-            var match$3 = parseApplication(parser$3);
-            _acc = {
-              TAG: "Bop",
-              _0: "Minus",
-              _1: acc,
-              _2: match$3[1]
-            };
-            _parser = match$3[0];
-            continue ;
-        default:
-          return [
-                  parser$1,
-                  acc
-                ];
-      }
-    };
-  };
-  var parseApplication = function (parser) {
-    var match = parseAtom(parser);
-    var _parser = match[0];
-    var _acc = match[1];
-    while(true) {
-      var acc = _acc;
-      var parser$1 = _parser;
-      var match$1 = peek(parser$1);
-      if (typeof match$1 !== "object") {
-        switch (match$1) {
-          case "Lambda" :
-          case "LeftParen" :
-              break;
-          default:
-            return [
-                    parser$1,
-                    acc
-                  ];
-        }
-      } else {
-        match$1.TAG === "Identifier";
-      }
-      var match$2 = parseAtom(parser$1);
-      _acc = {
-        TAG: "App",
-        _0: acc,
-        _1: match$2[1]
-      };
-      _parser = match$2[0];
-      continue ;
-    };
   };
   var match = parseBinaryOp(parser);
   var match$1 = peek(match[0]);

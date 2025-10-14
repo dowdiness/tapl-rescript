@@ -1,78 +1,22 @@
-// https://compiler.club/compiling-lambda-calculus/
-type deBruijnIndex = int
-type depth = int
-
-type varName = string
-type bop =
-  | Plus
-  | Minus
-
-module Lam = {
-  // Term
-  type rec t =
-    // Integer
-    | Int(int)
-    // variable
-    | Var(varName)
-    // lambda abstraction
-    | Lam(varName, t)
-    // application
-    | App(t, t)
-    // Binary operation
-    | Bop(bop, t, t)
-    | If(t, t, t)
-
-  exception NoRuleApplies(t)
-
-  let c = ref(-1)
-  let fresh = str => {
-    c := c.contents + 1
-    str ++ Int.toString(c.contents)
-  }
-
-  let rename = {
-    let rec go = env => t => {
-      switch t {
-      | Int(i) => Int(i)
-      | Var(name) => {
-          switch Belt.Map.String.get(env, name) {
-          | Some(name') => Var(name')
-          | None => raise(NoRuleApplies(t))
-          }
-        }
-      | Lam(name, t1) => {
-          let name' = fresh(name)
-          let env' = Belt.Map.String.set(env, name, name')
-          Lam(name', go(env')(t1))
-        }
-      | App(t1, t2) => App(go(env)(t1), go(env)(t2))
-      | Bop(op, t1, t2) => Bop(op, go(env)(t1), go(env)(t2))
-      | If(t1, t2, t3) => If(go(env)(t1), go(env)(t2), go(env)(t3))
-      }
-    }
-    let env = Belt.Map.String.empty
-    go(env)
-  }
-}
 
 module ANF = {
   // atoms, these are either variables or constants
   type atom =
     | AtomInt(int)
-    | AtomVar(varName)
-    | AtomGlob(varName)
+    | AtomVar(Ast.varName)
+    | AtomGlob(Ast.varName)
 
   // ANF representation
   type rec t =
     | Halt(atom)
-    | Fun(varName, list<varName>, t, t)
-    | Join(varName, option<varName>, t, t)
-    | Jump(varName, option<atom>)
-    | App(varName, varName, list<atom>, t)
-    | Bop(varName, bop, atom, atom, t)
+    | Fun(Ast.varName, list<Ast.varName>, t, t)
+    | Join(Ast.varName, option<Ast.varName>, t, t)
+    | Jump(Ast.varName, option<atom>)
+    | App(Ast.varName, Ast.varName, list<atom>, t)
+    | Bop(Ast.varName, Ast.bop, atom, atom, t)
     | If(atom, t, t)
-    | Tuple(varName, list<atom>, t)
-    | Proj(varName, varName, int, t)
+    | Tuple(Ast.varName, list<atom>, t)
+    | Proj(Ast.varName, Ast.varName, int, t)
 
   // Helper function to create Halt
   let mkHalt = (v: atom) => Halt(v)
@@ -82,12 +26,12 @@ module ANF = {
 
   // ANF conversion algorithm
   let convert = {
-    let rec go = (e: Lam.t, k: atom => t): t => {
+    let rec go = (e: Ast.t, k: atom => t): t => {
       switch e {
       | Int(i) => k(AtomInt(i))
       | Var(x) => k(AtomVar(x))
       | Lam(x, t) => {
-          let f = Lam.fresh("f")
+          let f = Ast.fresh("f")
           let t' = go(t, v => mkHalt(v))
           Fun(f, list{x}, t', k(AtomVar(f)))
         }
@@ -96,7 +40,7 @@ module ANF = {
             letStar(go(x, _), xAtom => {
               switch fAtom {
               | AtomVar(fVar) => {
-                  let r = Lam.fresh("r")
+                  let r = Ast.fresh("r")
                   App(r, fVar, list{xAtom}, k(AtomVar(r)))
                 }
               | _ => failwith("Must apply named value!")
@@ -107,7 +51,7 @@ module ANF = {
       | Bop(op, x, y) => {
           letStar(go(x, _), xAtom => {
             letStar(go(y, _), yAtom => {
-              let r = Lam.fresh("r")
+              let r = Ast.fresh("r")
               Bop(r, op, xAtom, yAtom, k(AtomVar(r)))
             })
           })
@@ -116,8 +60,8 @@ module ANF = {
         // We introduce Join Point here
         // https://compiler.club/compiling-lambda-calculus/#:~:text=we%20introduce%20a-,join%20point,-%3A
           letStar(go(e, _), eAtom => {
-            let j = Lam.fresh("j")
-            let p = Lam.fresh("p")
+            let j = Ast.fresh("j")
+            let p = Ast.fresh("p")
             let joinVar = Jump(j, Some(AtomVar(p)))
             Join(j, Some(p), k(AtomVar(p)), If(eAtom, go(t, _ => joinVar), go(f, _ => joinVar)))
           })
@@ -126,7 +70,7 @@ module ANF = {
     }
 
     // Entry point for conversion
-    (e: Lam.t) => go(e, mkHalt)
+    (e: Ast.t) => go(e, mkHalt)
   }
 }
 
@@ -240,7 +184,7 @@ module ClosureConversion = {
     let rec go = (t: ANF.t): ANF.t => {
       switch t {
       | Fun(f, xs, e, e') => {
-          let env = Lam.fresh("env")
+          let env = Ast.fresh("env")
           let fvs = FreeVars.compute(e)->Belt.Set.String.toArray->List.fromArray
 
           // Create projections for free variables in the function body
@@ -257,7 +201,7 @@ module ClosureConversion = {
           ANF.Fun(f, list{env, ...xs}, transformedBody, closureTuple)
         }
       | App(r, f, vs, e) => {
-          let ptr = Lam.fresh("f")
+          let ptr = Ast.fresh("f")
           ANF.Proj(ptr, f, 0, ANF.App(r, ptr, list{ANF.AtomVar(f), ...vs}, go(e)))
         }
       | Join(j, p, e, e') => ANF.Join(j, p, go(e), go(e'))
@@ -276,13 +220,13 @@ module ClosureConversion = {
 module Hoisting = {
   // Join point information
   type join_point = {
-    name: varName,
-    param: option<varName>,
+    name: Ast.varName,
+    param: option<Ast.varName>,
     body: ANF.t,
   }
 
   // Substitute a variable with an atom in ANF term
-  let rec substituteVar = (term: ANF.t, var: varName, replacement: ANF.atom): ANF.t => {
+  let rec substituteVar = (term: ANF.t, var: Ast.varName, replacement: ANF.atom): ANF.t => {
     let substAtom = (atom: ANF.atom): ANF.atom => {
       switch atom {
       | AtomVar(x) when x == var => replacement
@@ -400,7 +344,7 @@ module Hoisting = {
   }
 
   // Extract all functions to top level
-  let extractFunctions = (term: ANF.t): (list<(varName, list<varName>, ANF.t)>, ANF.t) => {
+  let extractFunctions = (term: ANF.t): (list<(Ast.varName, list<Ast.varName>, ANF.t)>, ANF.t) => {
     let functions = ref(list{})
 
     let rec extract = (t: ANF.t): ANF.t => {
@@ -425,8 +369,8 @@ module Hoisting = {
   }
 
   // Reconstruct ANF with functions at top level
-  let reconstructWithFunctions = (functions: list<(varName, list<varName>, ANF.t)>, mainFlow: ANF.t): ANF.t => {
-    let rec reconstruct = (funcs: list<(varName, list<varName>, ANF.t)>, acc: ANF.t): ANF.t => {
+  let reconstructWithFunctions = (functions: list<(Ast.varName, list<Ast.varName>, ANF.t)>, mainFlow: ANF.t): ANF.t => {
+    let rec reconstruct = (funcs: list<(Ast.varName, list<Ast.varName>, ANF.t)>, acc: ANF.t): ANF.t => {
       switch funcs {
       | list{} => acc
       | list{(f, params, body), ...rest} => Fun(f, params, body, reconstruct(rest, acc))
@@ -480,7 +424,7 @@ module Print = {
     }
   }
 
-  let rec printLam = (t: Lam.t): string => {
+  let rec printLam = (t: Ast.t): string => {
     switch t {
     | Int(i) => Int.toString(i)
     | Var(x) => x
@@ -913,11 +857,11 @@ module LLVMLowering = {
 }
 
 module Compiler = {
-  let compile = (term: Lam.t) => {
-    term->Lam.rename->ANF.convert->ClosureConversion.convert->Hoisting.hoist
+  let compile = (term: Ast.t) => {
+    term->Ast.rename->ANF.convert->ClosureConversion.convert->Hoisting.hoist
   }
 
-  let compileToLLVM = (term: Lam.t, phase: int) => {
+  let compileToLLVM = (term: Ast.t, phase: int) => {
     let anf = compile(term)
     switch phase {
     | 1 => LLVMLowering.lowerPhase1(anf)

@@ -144,30 +144,30 @@ let expect = (parser: parser, expected: token): parser => {
 }
 
 // Enhanced parser with binary operators and proper precedence
-let parse = (input: string): Compile.Lam.t => {
+let parse = (input: string): Ast.t => {
   let tokens = tokenize(input)
   let parser = makeParser(tokens)
 
   // Recursive descent parser with proper precedence
-  let rec parseExpression = (parser: parser): (parser, Compile.Lam.t) => {
+  let rec parseExpression = (parser: parser): (parser, Ast.t) => {
     parseBinaryOp(parser)
   }
 
   // Parse binary operations with left associativity (lowest precedence)
-  and parseBinaryOp = (parser: parser): (parser, Compile.Lam.t) => {
+  and parseBinaryOp = (parser: parser): (parser, Ast.t) => {
     let (parser, left) = parseApplication(parser)
 
-    let rec loop = (parser: parser, acc: Compile.Lam.t): (parser, Compile.Lam.t) => {
+    let rec loop = (parser: parser, acc: Ast.t): (parser, Ast.t) => {
       switch peek(parser) {
       | Plus => {
           let parser = advance(parser)
           let (parser, right) = parseApplication(parser)
-          loop(parser, Compile.Lam.Bop(Compile.Plus, acc, right))
+          loop(parser, Ast.Bop(Ast.Plus, acc, right))
         }
       | Minus => {
           let parser = advance(parser)
           let (parser, right) = parseApplication(parser)
-          loop(parser, Compile.Lam.Bop(Compile.Minus, acc, right))
+          loop(parser, Ast.Bop(Ast.Minus, acc, right))
         }
       | _ => (parser, acc)
       }
@@ -177,14 +177,14 @@ let parse = (input: string): Compile.Lam.t => {
   }
 
   // Parse function application (higher precedence than binary ops)
-  and parseApplication = (parser: parser): (parser, Compile.Lam.t) => {
+  and parseApplication = (parser: parser): (parser, Ast.t) => {
     let (parser, first) = parseAtom(parser)
 
-    let rec loop = (parser: parser, acc: Compile.Lam.t): (parser, Compile.Lam.t) => {
+    let rec loop = (parser: parser, acc: Ast.t): (parser, Ast.t) => {
       switch peek(parser) {
       | LeftParen | Identifier(_) | Integer(_) | Lambda => {
           let (parser, next) = parseAtom(parser)
-          loop(parser, Compile.Lam.App(acc, next))
+          loop(parser, Ast.App(acc, next))
         }
       | _ => (parser, acc)
       }
@@ -194,10 +194,10 @@ let parse = (input: string): Compile.Lam.t => {
   }
 
   // Parse atomic expressions (highest precedence)
-  and parseAtom = (parser: parser): (parser, Compile.Lam.t) => {
+  and parseAtom = (parser: parser): (parser, Ast.t) => {
     switch peek(parser) {
-    | Integer(n) => (advance(parser), Compile.Lam.Int(n))
-    | Identifier(name) => (advance(parser), Compile.Lam.Var(name))
+    | Integer(n) => (advance(parser), Ast.Int(n))
+    | Identifier(name) => (advance(parser), Ast.Var(name))
     | Lambda => {
         let parser = advance(parser)
         switch peek(parser) {
@@ -205,7 +205,7 @@ let parse = (input: string): Compile.Lam.t => {
             let parser = advance(parser)
             let parser = expect(parser, Dot)
             let (parser, body) = parseExpression(parser)
-            (parser, Compile.Lam.Lam(param, body))
+            (parser, Ast.Lam(param, body))
           }
         | _ => raise(ParseError("Expected parameter after λ"))
         }
@@ -217,7 +217,7 @@ let parse = (input: string): Compile.Lam.t => {
         let (parser, thenExpr) = parseExpression(parser)
         let parser = expect(parser, Else)
         let (parser, elseExpr) = parseExpression(parser)
-        (parser, Compile.Lam.If(condition, thenExpr, elseExpr))
+        (parser, Ast.If(condition, thenExpr, elseExpr))
       }
     | LeftParen => {
         let parser = advance(parser)

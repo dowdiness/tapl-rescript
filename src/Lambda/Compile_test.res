@@ -5,59 +5,59 @@ open Vitest
 open Compile
 
 // Test cases
-let testLambda = Lam.Lam("x", Lam.Var("x"))
-let testApp = Lam.App(Lam.Lam("x", Lam.Var("x")), Lam.Int(42))
-let testBop = Lam.Bop(Plus, Lam.Int(3), Lam.Int(4))
-let testIf = Lam.If(Lam.Int(1), Lam.Int(2), Lam.Int(3))
+let testLambda = Ast.Lam("x", Ast.Var("x"))
+let testApp = Ast.App(Ast.Lam("x", Ast.Var("x")), Ast.Int(42))
+let testBop = Ast.Bop(Plus, Ast.Int(3), Ast.Int(4))
+let testIf = Ast.If(Ast.Int(1), Ast.Int(2), Ast.Int(3))
 
 // Complex test cases
-let testNested = Lam.Lam("x",
-  Lam.App(
-    Lam.Lam("y",
-      Lam.App(
-        Lam.Lam("z", Lam.Bop(Plus, Lam.Var("x"), Lam.Bop(Plus, Lam.Var("y"), Lam.Var("z")))),
-        Lam.Int(3)
+let testNested = Ast.Lam("x",
+  Ast.App(
+    Ast.Lam("y",
+      Ast.App(
+        Ast.Lam("z", Ast.Bop(Plus, Ast.Var("x"), Ast.Bop(Plus, Ast.Var("y"), Ast.Var("z")))),
+        Ast.Int(3)
       )
     ),
-    Lam.Int(2)
+    Ast.Int(2)
   )
 )
 
-let testCurried = Lam.Lam("x",
-  Lam.Lam("y",
-    Lam.Bop(Plus, Lam.Var("x"), Lam.Var("y"))
+let testCurried = Ast.Lam("x",
+  Ast.Lam("y",
+    Ast.Bop(Plus, Ast.Var("x"), Ast.Var("y"))
   )
 )
 
-let testComplexFreeVars = Lam.App(
-  Lam.Lam("a",
-    Lam.App(
-      Lam.Lam("b",
-        Lam.App(
-          Lam.Lam("c",
-            Lam.Bop(Plus,
-              Lam.Var("a"),
-              Lam.Bop(Plus, Lam.Var("b"), Lam.Var("c"))
+let testComplexFreeVars = Ast.App(
+  Ast.Lam("a",
+    Ast.App(
+      Ast.Lam("b",
+        Ast.App(
+          Ast.Lam("c",
+            Ast.Bop(Plus,
+              Ast.Var("a"),
+              Ast.Bop(Plus, Ast.Var("b"), Ast.Var("c"))
             )
           ),
-          Lam.Bop(Plus, Lam.Var("a"), Lam.Var("b"))
+          Ast.Bop(Plus, Ast.Var("a"), Ast.Var("b"))
         )
       ),
-      Lam.Bop(Plus, Lam.Var("a"), Lam.Int(1))
+      Ast.Bop(Plus, Ast.Var("a"), Ast.Int(1))
     )
   ),
-  Lam.Int(10)
+  Ast.Int(10)
 )
 
-let testConditionalNested = Lam.If(
-  Lam.Int(1),
-  Lam.Lam("x", Lam.Bop(Plus, Lam.Var("x"), Lam.Int(1))),
-  Lam.Lam("y", Lam.Bop(Minus, Lam.Var("y"), Lam.Int(1)))
+let testConditionalNested = Ast.If(
+  Ast.Int(1),
+  Ast.Lam("x", Ast.Bop(Plus, Ast.Var("x"), Ast.Int(1))),
+  Ast.Lam("y", Ast.Bop(Minus, Ast.Var("y"), Ast.Int(1)))
 )
 
 describe("Alpha Renaming", () => {
   test("identity function", () => {
-    let renamed = Lam.rename(testLambda)
+    let renamed = Ast.rename(testLambda)
     let printed = Print.printLam(renamed)
     // Should contain lambda and renamed variable
     expect(printed)->toContain("λ")
@@ -65,7 +65,7 @@ describe("Alpha Renaming", () => {
   })
 
   test("application", () => {
-    let renamed = Lam.rename(testApp)
+    let renamed = Ast.rename(testApp)
     let printed = Print.printLam(renamed)
     expect(printed)->toContain("λ")
     expect(printed)->toContain("42")
@@ -73,7 +73,7 @@ describe("Alpha Renaming", () => {
   })
 
   test("binary operation", () => {
-    let renamed = Lam.rename(testBop)
+    let renamed = Ast.rename(testBop)
     let printed = Print.printLam(renamed)
     expect(printed)->toContain("3")
     expect(printed)->toContain("4")
@@ -81,7 +81,7 @@ describe("Alpha Renaming", () => {
   })
 
   test("if expression", () => {
-    let renamed = Lam.rename(testIf)
+    let renamed = Ast.rename(testIf)
     let printed = Print.printLam(renamed)
     expect(printed)->toContain("if")
     expect(printed)->toContain("then")
@@ -92,7 +92,7 @@ describe("Alpha Renaming", () => {
   })
 
   test("nested functions preserve structure", () => {
-    let renamed = Lam.rename(testNested)
+    let renamed = Ast.rename(testNested)
     let printed = Print.printLam(renamed)
     expect(printed)->toContain("λ")
     expect(printed)->toContain("+")
@@ -101,7 +101,7 @@ describe("Alpha Renaming", () => {
   })
 
   test("curried function maintains currying", () => {
-    let renamed = Lam.rename(testCurried)
+    let renamed = Ast.rename(testCurried)
     let printed = Print.printLam(renamed)
     // Should have two lambda abstractions
     let lambdaCount = Js.String2.split(printed, "λ")->Array.length - 1
@@ -112,7 +112,7 @@ describe("Alpha Renaming", () => {
 
 describe("ANF Conversion", () => {
   test("identity function produces function definition", () => {
-    let renamed = Lam.rename(testLambda)
+    let renamed = Ast.rename(testLambda)
     let anf = ANF.convert(renamed)
     let printed = Print.printANF(anf)
     expect(printed)->toContain("fun")
@@ -120,7 +120,7 @@ describe("ANF Conversion", () => {
   })
 
   test("application produces function call", () => {
-    let renamed = Lam.rename(testApp)
+    let renamed = Ast.rename(testApp)
     let anf = ANF.convert(renamed)
     let printed = Print.printANF(anf)
     expect(printed)->toContain("fun")
@@ -129,7 +129,7 @@ describe("ANF Conversion", () => {
   })
 
   test("binary operation produces arithmetic", () => {
-    let renamed = Lam.rename(testBop)
+    let renamed = Ast.rename(testBop)
     let anf = ANF.convert(renamed)
     let printed = Print.printANF(anf)
     expect(printed)->toContain("3 + 4")
@@ -137,7 +137,7 @@ describe("ANF Conversion", () => {
   })
 
   test("if expression produces conditional", () => {
-    let renamed = Lam.rename(testIf)
+    let renamed = Ast.rename(testIf)
     let anf = ANF.convert(renamed)
     let printed = Print.printANF(anf)
     expect(printed)->toContain("if")
@@ -148,7 +148,7 @@ describe("ANF Conversion", () => {
   })
 
   test("nested functions produce multiple function definitions", () => {
-    let renamed = Lam.rename(testNested)
+    let renamed = Ast.rename(testNested)
     let anf = ANF.convert(renamed)
     let printed = Print.printANF(anf)
     // Should have multiple function definitions
@@ -158,7 +158,7 @@ describe("ANF Conversion", () => {
   })
 
   test("complex free variables handled correctly", () => {
-    let renamed = Lam.rename(testComplexFreeVars)
+    let renamed = Ast.rename(testComplexFreeVars)
     let anf = ANF.convert(renamed)
     let printed = Print.printANF(anf)
     expect(printed)->toContain("fun")
@@ -188,7 +188,7 @@ describe("Free Variables Computation", () => {
 
 describe("Closure Conversion", () => {
   test("identity function creates closure tuple", () => {
-    let renamed = Lam.rename(testLambda)
+    let renamed = Ast.rename(testLambda)
     let anf = ANF.convert(renamed)
     let closure = ClosureConversion.convert(anf)
     let printed = Print.printANF(closure)
@@ -198,7 +198,7 @@ describe("Closure Conversion", () => {
   })
 
   test("application uses closure projection", () => {
-    let renamed = Lam.rename(testApp)
+    let renamed = Ast.rename(testApp)
     let anf = ANF.convert(renamed)
     let closure = ClosureConversion.convert(anf)
     let printed = Print.printANF(closure)
@@ -208,7 +208,7 @@ describe("Closure Conversion", () => {
   })
 
   test("binary operation unchanged", () => {
-    let renamed = Lam.rename(testBop)
+    let renamed = Ast.rename(testBop)
     let anf = ANF.convert(renamed)
     let closure = ClosureConversion.convert(anf)
     let printed = Print.printANF(closure)
@@ -217,7 +217,7 @@ describe("Closure Conversion", () => {
   })
 
   test("nested functions create environment tuples", () => {
-    let renamed = Lam.rename(testNested)
+    let renamed = Ast.rename(testNested)
     let anf = ANF.convert(renamed)
     let closure = ClosureConversion.convert(anf)
     let printed = Print.printANF(closure)
@@ -229,7 +229,7 @@ describe("Closure Conversion", () => {
 
 describe("Hoisting", () => {
   test("identity function hoists to top level", () => {
-    let renamed = Lam.rename(testLambda)
+    let renamed = Ast.rename(testLambda)
     let anf = ANF.convert(renamed)
     let closure = ClosureConversion.convert(anf)
     let hoisted = Hoisting.hoist(closure)
@@ -241,7 +241,7 @@ describe("Hoisting", () => {
   })
 
   test("application maintains function order", () => {
-    let renamed = Lam.rename(testApp)
+    let renamed = Ast.rename(testApp)
     let anf = ANF.convert(renamed)
     let closure = ClosureConversion.convert(anf)
     let hoisted = Hoisting.hoist(closure)
@@ -252,7 +252,7 @@ describe("Hoisting", () => {
   })
 
   test("binary operation structure preserved", () => {
-    let renamed = Lam.rename(testBop)
+    let renamed = Ast.rename(testBop)
     let anf = ANF.convert(renamed)
     let closure = ClosureConversion.convert(anf)
     let hoisted = Hoisting.hoist(closure)
@@ -262,7 +262,7 @@ describe("Hoisting", () => {
   })
 
   test("complex expressions have proper function ordering", () => {
-    let renamed = Lam.rename(testComplexFreeVars)
+    let renamed = Ast.rename(testComplexFreeVars)
     let anf = ANF.convert(renamed)
     let closure = ClosureConversion.convert(anf)
     let hoisted = Hoisting.hoist(closure)
@@ -466,19 +466,19 @@ describe("Complete Compilation Pipeline", () => {
 
 describe("Integrated Compiler Pipeline Tests", () => {
   test("complete pipeline - simple arithmetic", () => {
-    let testPipelineArith = Lam.Bop(Plus, Lam.Int(10), Lam.Int(5))
+    let testPipelineArith = Ast.Bop(Plus, Ast.Int(10), Ast.Int(5))
     let llvm = Compiler.compileToLLVM(testPipelineArith, 1)
     expect(llvm)->toContain("add i64 10, 5")
     expect(llvm)->toContain("define i64 @main()")
   })
 
   test("complete pipeline - function call", () => {
-    let testPipelineFunc = Lam.App(Lam.Lam("x", Lam.Bop(Plus, Lam.Var("x"), Lam.Int(1))), Lam.Int(42))
+    let testPipelineFunc = Ast.App(Ast.Lam("x", Ast.Bop(Plus, Ast.Var("x"), Ast.Int(1))), Ast.Int(42))
     expect(() => Compiler.compileToLLVM(testPipelineFunc, 2))->toThrow
   })
 
   test("complete pipeline - conditional (now works with corrected hoisting)", () => {
-    let testPipelineIf = Lam.If(Lam.Int(1), Lam.Bop(Plus, Lam.Int(10), Lam.Int(5)), Lam.Bop(Minus, Lam.Int(20), Lam.Int(3)))
+    let testPipelineIf = Ast.If(Ast.Int(1), Ast.Bop(Plus, Ast.Int(10), Ast.Int(5)), Ast.Bop(Minus, Ast.Int(20), Ast.Int(3)))
     // Should no longer throw because hoisting creates straightline code
     let llvm = Compiler.compileToLLVM(testPipelineIf, 4)
     expect(llvm)->toContain("icmp ne i64 1, 0")
