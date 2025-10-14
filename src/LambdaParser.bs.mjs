@@ -256,7 +256,11 @@ function expect(parser, expected) {
 
 function parse(input) {
   var tokens = tokenize(input);
-  var parseExpr = function (parser) {
+  var parser = {
+    tokens: tokens,
+    position: 0
+  };
+  var parseAtom = function (parser) {
     var n = peek(parser);
     if (typeof n === "object") {
       if (n.TAG === "Identifier") {
@@ -291,7 +295,7 @@ function parse(input) {
           if (param.TAG === "Identifier") {
             var parser$2 = advance(parser$1);
             var parser$3 = expect(parser$2, "Dot");
-            var match = parseExpr(parser$3);
+            var match = parseBinaryOp(parser$3);
             return [
                     match[0],
                     {
@@ -308,7 +312,7 @@ function parse(input) {
               };
       case "LeftParen" :
           var parser$4 = advance(parser);
-          var match$1 = parseExpr(parser$4);
+          var match$1 = parseBinaryOp(parser$4);
           var parser$5 = expect(match$1[0], "RightParen");
           return [
                   parser$5,
@@ -316,11 +320,11 @@ function parse(input) {
                 ];
       case "If" :
           var parser$6 = advance(parser);
-          var match$2 = parseExpr(parser$6);
+          var match$2 = parseBinaryOp(parser$6);
           var parser$7 = expect(match$2[0], "Then");
-          var match$3 = parseExpr(parser$7);
+          var match$3 = parseBinaryOp(parser$7);
           var parser$8 = expect(match$3[0], "Else");
-          var match$4 = parseExpr(parser$8);
+          var match$4 = parseBinaryOp(parser$8);
           return [
                   match$4[0],
                   {
@@ -338,11 +342,101 @@ function parse(input) {
             };
     }
   };
-  var parser = {
-    tokens: tokens,
-    position: 0
+  var parseBinaryOp = function (parser) {
+    var match = parseApplication(parser);
+    var _parser = match[0];
+    var _acc = match[1];
+    while(true) {
+      var acc = _acc;
+      var parser$1 = _parser;
+      var match$1 = peek(parser$1);
+      if (typeof match$1 === "object") {
+        return [
+                parser$1,
+                acc
+              ];
+      }
+      switch (match$1) {
+        case "Plus" :
+            var parser$2 = advance(parser$1);
+            var match$2 = parseApplication(parser$2);
+            _acc = {
+              TAG: "Bop",
+              _0: "Plus",
+              _1: acc,
+              _2: match$2[1]
+            };
+            _parser = match$2[0];
+            continue ;
+        case "Minus" :
+            var parser$3 = advance(parser$1);
+            var match$3 = parseApplication(parser$3);
+            _acc = {
+              TAG: "Bop",
+              _0: "Minus",
+              _1: acc,
+              _2: match$3[1]
+            };
+            _parser = match$3[0];
+            continue ;
+        default:
+          return [
+                  parser$1,
+                  acc
+                ];
+      }
+    };
   };
-  return parseExpr(parser)[1];
+  var parseApplication = function (parser) {
+    var match = parseAtom(parser);
+    var _parser = match[0];
+    var _acc = match[1];
+    while(true) {
+      var acc = _acc;
+      var parser$1 = _parser;
+      var match$1 = peek(parser$1);
+      if (typeof match$1 !== "object") {
+        switch (match$1) {
+          case "Lambda" :
+          case "LeftParen" :
+              break;
+          default:
+            return [
+                    parser$1,
+                    acc
+                  ];
+        }
+      } else {
+        match$1.TAG === "Identifier";
+      }
+      var match$2 = parseAtom(parser$1);
+      _acc = {
+        TAG: "App",
+        _0: acc,
+        _1: match$2[1]
+      };
+      _parser = match$2[0];
+      continue ;
+    };
+  };
+  var match = parseBinaryOp(parser);
+  var match$1 = peek(match[0]);
+  if (typeof match$1 !== "object") {
+    if (match$1 === "EOF") {
+      return match[1];
+    }
+    throw {
+          RE_EXN_ID: ParseError,
+          _1: "Unexpected tokens after expression",
+          Error: new Error()
+        };
+  } else {
+    throw {
+          RE_EXN_ID: ParseError,
+          _1: "Unexpected tokens after expression",
+          Error: new Error()
+        };
+  }
 }
 
 function parseAndCompile(input) {
@@ -354,27 +448,39 @@ function parseAndCompileToLLVM(input, phase) {
 }
 
 function testParser() {
-  console.log("Testing parser...");
-  var tokens1 = tokenize("λx.2");
-  console.log("Tokens for '42': " + printTokens(tokens1));
-  var tokens2 = tokenize("λx.x");
-  console.log("Tokens for 'λx.x': " + printTokens(tokens2));
-  var tokens3 = tokenize("if true then 2 else 3");
-  console.log("Tokens for 'if true then 2 else 3': " + printTokens(tokens3));
+  console.log("Testing enhanced parser with binary operators...");
+  var tokens1 = tokenize("1 + 2");
+  console.log("Tokens for '1 + 2': " + printTokens(tokens1));
+  var tokens2 = tokenize("λx.x + 1");
+  console.log("Tokens for 'λx.x + 1': " + printTokens(tokens2));
+  var tokens3 = tokenize("3 - 1 + 2");
+  console.log("Tokens for '3 - 1 + 2': " + printTokens(tokens3));
   var expr1 = parse("42");
   console.log("Parsed '42': " + LambdaCompile.Print.printLam(expr1));
   var expr2 = parse("x");
   console.log("Parsed 'x': " + LambdaCompile.Print.printLam(expr2));
   var expr3 = parse("λx.x");
   console.log("Parsed 'λx.x': " + LambdaCompile.Print.printLam(expr3));
-  var expr4 = parse("if true then 2 else 3");
-  console.log("Parsed 'if true then 2 else 3': " + LambdaCompile.Print.printLam(expr4));
-  var compiled = parseAndCompile("λx.x");
-  console.log("Compiled 'λx.x': " + LambdaCompile.Print.printANF(compiled));
-  console.log("Parser tests completed!");
+  var expr4 = parse("1 + 2");
+  console.log("Parsed '1 + 2': " + LambdaCompile.Print.printLam(expr4));
+  var expr5 = parse("5 - 3");
+  console.log("Parsed '5 - 3': " + LambdaCompile.Print.printLam(expr5));
+  var expr6 = parse("1 + 2 + 3");
+  console.log("Parsed '1 + 2 + 3': " + LambdaCompile.Print.printLam(expr6));
+  var expr7 = parse("10 - 5 + 2");
+  console.log("Parsed '10 - 5 + 2': " + LambdaCompile.Print.printLam(expr7));
+  var expr8 = parse("(1 + 2) + 3");
+  console.log("Parsed '(1 + 2) + 3': " + LambdaCompile.Print.printLam(expr8));
+  var expr9 = parse("λx.x + 1");
+  console.log("Parsed 'λx.x + 1': " + LambdaCompile.Print.printLam(expr9));
+  var expr10 = parse("if 1 then 2 else 3");
+  console.log("Parsed 'if 1 then 2 else 3': " + LambdaCompile.Print.printLam(expr10));
+  var compiled1 = parseAndCompile("1 + 2");
+  console.log("Compiled '1 + 2': " + LambdaCompile.Print.printANF(compiled1));
+  var compiled2 = parseAndCompile("λx.x + 1");
+  console.log("Compiled 'λx.x + 1': " + LambdaCompile.Print.printANF(compiled2));
+  console.log("Enhanced parser tests completed!");
 }
-
-testParser();
 
 export {
   ParseError ,
@@ -393,4 +499,4 @@ export {
   parseAndCompileToLLVM ,
   testParser ,
 }
-/*  Not a pure module */
+/* LambdaCompile Not a pure module */

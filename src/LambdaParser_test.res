@@ -61,7 +61,19 @@ describe("LambdaParser Tests", () => {
   test("parse plus binary operator", () => {
     let expr = LambdaParser.parse("1 + 2")
     let printed = LambdaCompile.Print.printLam(expr)
-    expect(printed)->toBe("1 + 2")
+    expect(printed)->toBe("(1 + 2)")
+  })
+
+  test("parse minus binary operator", () => {
+    let expr = LambdaParser.parse("5 - 2")
+    let printed = LambdaCompile.Print.printLam(expr)
+    expect(printed)->toBe("(5 - 2)")
+  })
+
+  test("parse complex binary operators", () => {
+    let expr = LambdaParser.parse("10 - 5 + 2")
+    let printed = LambdaCompile.Print.printLam(expr)
+    expect(printed)->toBe("((10 - 5) + 2)")
   })
 
   test("parse simple variable", () => {
