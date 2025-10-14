@@ -1,3 +1,6 @@
+// Suppres warning that suggests shadowing the value identifier not.
+@@warning("-44")
+
 open Vitest
 open Compile
 

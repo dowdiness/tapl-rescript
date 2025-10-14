@@ -336,7 +336,7 @@ module Hoisting = {
   }
 
   // Collect all join points from ANF term
-  let rec collectJoinPoints = (term: ANF.t): Belt.Map.String.t<join_point> => {
+  let collectJoinPoints = (term: ANF.t): Belt.Map.String.t<join_point> => {
     let joinPoints = ref(Belt.Map.String.empty)
 
     let rec collect = (t: ANF.t) => {
