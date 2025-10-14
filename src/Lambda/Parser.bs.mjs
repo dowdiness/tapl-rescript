@@ -47,6 +47,38 @@ function printTokens(tokens) {
   return "[" + tokens$1 + "]";
 }
 
+function isBigAlphabet(code) {
+  if (code >= 65) {
+    return code <= 90;
+  } else {
+    return false;
+  }
+}
+
+function isSmallAlphabet(code) {
+  if (code >= 97) {
+    return code <= 122;
+  } else {
+    return false;
+  }
+}
+
+function isAlphabet(code) {
+  if (isBigAlphabet(code)) {
+    return true;
+  } else {
+    return isSmallAlphabet(code);
+  }
+}
+
+function isNumeric(code) {
+  if (code >= 48) {
+    return code <= 57;
+  } else {
+    return false;
+  }
+}
+
 function tokenizeHelper(input, _pos, _acc) {
   while(true) {
     var acc = _acc;
@@ -107,7 +139,7 @@ function tokenizeHelper(input, _pos, _acc) {
           break;
       default:
         var code = c.charCodeAt(0) | 0;
-        if (code >= 65 && code <= 90 || code >= 97 && code <= 122) {
+        if (isAlphabet(code)) {
           var match = readIdentifier(input, pos, "");
           var identifier = match[1];
           var token;
@@ -134,7 +166,7 @@ function tokenizeHelper(input, _pos, _acc) {
           _pos = match[0];
           continue ;
         }
-        if (code >= 48 && code <= 57) {
+        if (isNumeric(code)) {
           var match$1 = readNumber(input, pos, 0);
           _acc = {
             hd: {
@@ -180,7 +212,7 @@ function readIdentifier(input, _pos, _acc) {
     }
     var c = input.charAt(pos);
     var code = c.charCodeAt(0) | 0;
-    if (!(code >= 65 && code <= 90 || code >= 97 && code <= 122 || code >= 48 && code <= 57)) {
+    if (!(isAlphabet(code) || isNumeric(code))) {
       return [
               pos,
               acc
@@ -204,7 +236,7 @@ function readNumber(input, _pos, _acc) {
     }
     var c = input.charAt(pos);
     var code = c.charCodeAt(0) | 0;
-    if (!(code >= 48 && code <= 57)) {
+    if (!isNumeric(code)) {
       return [
               pos,
               acc
@@ -261,6 +293,83 @@ function parse(input) {
   var parser = {
     tokens: tokens,
     position: 0
+  };
+  var parseApplication = function (parser) {
+    var match = parseAtom(parser);
+    var _parser = match[0];
+    var _acc = match[1];
+    while(true) {
+      var acc = _acc;
+      var parser$1 = _parser;
+      var match$1 = peek(parser$1);
+      if (typeof match$1 !== "object") {
+        switch (match$1) {
+          case "Lambda" :
+          case "LeftParen" :
+              break;
+          default:
+            return [
+                    parser$1,
+                    acc
+                  ];
+        }
+      } else {
+        match$1.TAG === "Identifier";
+      }
+      var match$2 = parseAtom(parser$1);
+      _acc = {
+        TAG: "App",
+        _0: acc,
+        _1: match$2[1]
+      };
+      _parser = match$2[0];
+      continue ;
+    };
+  };
+  var parseBinaryOp = function (parser) {
+    var match = parseApplication(parser);
+    var _parser = match[0];
+    var _acc = match[1];
+    while(true) {
+      var acc = _acc;
+      var parser$1 = _parser;
+      var match$1 = peek(parser$1);
+      if (typeof match$1 === "object") {
+        return [
+                parser$1,
+                acc
+              ];
+      }
+      switch (match$1) {
+        case "Plus" :
+            var parser$2 = advance(parser$1);
+            var match$2 = parseApplication(parser$2);
+            _acc = {
+              TAG: "Bop",
+              _0: "Plus",
+              _1: acc,
+              _2: match$2[1]
+            };
+            _parser = match$2[0];
+            continue ;
+        case "Minus" :
+            var parser$3 = advance(parser$1);
+            var match$3 = parseApplication(parser$3);
+            _acc = {
+              TAG: "Bop",
+              _0: "Minus",
+              _1: acc,
+              _2: match$3[1]
+            };
+            _parser = match$3[0];
+            continue ;
+        default:
+          return [
+                  parser$1,
+                  acc
+                ];
+      }
+    };
   };
   var parseAtom = function (parser) {
     var n = peek(parser);
@@ -337,101 +446,16 @@ function parse(input) {
             };
     }
   };
-  var parseBinaryOp = function (parser) {
-    var match = parseApplication(parser);
-    var _parser = match[0];
-    var _acc = match[1];
-    while(true) {
-      var acc = _acc;
-      var parser$1 = _parser;
-      var match$1 = peek(parser$1);
-      if (typeof match$1 === "object") {
-        return [
-                parser$1,
-                acc
-              ];
-      }
-      switch (match$1) {
-        case "Plus" :
-            var parser$2 = advance(parser$1);
-            var match$2 = parseApplication(parser$2);
-            _acc = {
-              TAG: "Bop",
-              _0: "Plus",
-              _1: acc,
-              _2: match$2[1]
-            };
-            _parser = match$2[0];
-            continue ;
-        case "Minus" :
-            var parser$3 = advance(parser$1);
-            var match$3 = parseApplication(parser$3);
-            _acc = {
-              TAG: "Bop",
-              _0: "Minus",
-              _1: acc,
-              _2: match$3[1]
-            };
-            _parser = match$3[0];
-            continue ;
-        default:
-          return [
-                  parser$1,
-                  acc
-                ];
-      }
-    };
-  };
-  var parseApplication = function (parser) {
-    var match = parseAtom(parser);
-    var _parser = match[0];
-    var _acc = match[1];
-    while(true) {
-      var acc = _acc;
-      var parser$1 = _parser;
-      var match$1 = peek(parser$1);
-      if (typeof match$1 !== "object") {
-        switch (match$1) {
-          case "Lambda" :
-          case "LeftParen" :
-              break;
-          default:
-            return [
-                    parser$1,
-                    acc
-                  ];
-        }
-      } else {
-        match$1.TAG === "Identifier";
-      }
-      var match$2 = parseAtom(parser$1);
-      _acc = {
-        TAG: "App",
-        _0: acc,
-        _1: match$2[1]
-      };
-      _parser = match$2[0];
-      continue ;
-    };
-  };
   var match = parseBinaryOp(parser);
-  var match$1 = peek(match[0]);
-  if (typeof match$1 !== "object") {
-    if (match$1 === "EOF") {
-      return match[1];
-    }
-    throw {
-          RE_EXN_ID: ParseError,
-          _1: "Unexpected tokens after expression",
-          Error: new Error()
-        };
-  } else {
-    throw {
-          RE_EXN_ID: ParseError,
-          _1: "Unexpected tokens after expression",
-          Error: new Error()
-        };
+  var token = peek(match[0]);
+  if (typeof token !== "object" && token === "EOF") {
+    return match[1];
   }
+  throw {
+        RE_EXN_ID: ParseError,
+        _1: "Unexpected tokens after expression: " + printToken(token),
+        Error: new Error()
+      };
 }
 
 function parseAndCompile(input) {
@@ -481,6 +505,10 @@ export {
   ParseError ,
   printToken ,
   printTokens ,
+  isBigAlphabet ,
+  isSmallAlphabet ,
+  isAlphabet ,
+  isNumeric ,
   tokenizeHelper ,
   readIdentifier ,
   readNumber ,

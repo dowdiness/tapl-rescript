@@ -41,6 +41,26 @@ let printTokens = (tokens: list<token>): string => {
   `[${tokens}]`
 }
 
+// 65-90(A-Z)
+let isBigAlphabet = (code: int) => {
+  code >= 65 && code <= 90
+}
+
+// 97-122(a-z)
+let isSmallAlphabet = (code: int) => {
+  code >= 97 && code <= 122
+}
+
+// 65-90(A-Z), 97-122(a-z)
+let isAlphabet = (code: int) => {
+  isBigAlphabet(code) || isSmallAlphabet(code)
+}
+
+// 48-57(0-9)
+let isNumeric = (code: int) => {
+  code >= 48 && code <= 57
+}
+
 // Simple recursive tokenizer
 let rec tokenizeHelper = (input: string, pos: int, acc: list<token>): list<token> => {
   if pos >= String.length(input) {
@@ -57,7 +77,7 @@ let rec tokenizeHelper = (input: string, pos: int, acc: list<token>): list<token
     | "-" => tokenizeHelper(input, pos + 1, list{Minus, ...acc})
     | c => {
         let code = String.charCodeAt(c, 0)->Float.toInt
-        if (code >= 65 && code <= 90) || (code >= 97 && code <= 122) {
+        if isAlphabet(code) {
           // Alphabetic - read identifier
           let (newPos, identifier) = readIdentifier(input, pos, "")
           let token = switch identifier {
@@ -67,7 +87,7 @@ let rec tokenizeHelper = (input: string, pos: int, acc: list<token>): list<token
           | _ => Identifier(identifier)
           }
           tokenizeHelper(input, newPos, list{token, ...acc})
-        } else if code >= 48 && code <= 57 {
+        } else if isNumeric(code) {
           // Numeric - read number
           let (newPos, number) = readNumber(input, pos, 0)
           tokenizeHelper(input, newPos, list{Integer(number), ...acc})
@@ -85,7 +105,7 @@ and readIdentifier = (input: string, pos: int, acc: string): (int, string) => {
   } else {
     let c = String.charAt(input, pos)
     let code = String.charCodeAt(c, 0)->Float.toInt
-    if (code >= 65 && code <= 90) || (code >= 97 && code <= 122) || (code >= 48 && code <= 57) {
+    if isAlphabet(code) || isNumeric(code) {
       readIdentifier(input, pos + 1, acc ++ c)
     } else {
       (pos, acc)
@@ -99,7 +119,7 @@ and readNumber = (input: string, pos: int, acc: int): (int, int) => {
   } else {
     let c = String.charAt(input, pos)
     let code = String.charCodeAt(c, 0)->Float.toInt
-    if code >= 48 && code <= 57 {
+    if isNumeric(code) {
       let digit = code - 48
       readNumber(input, pos + 1, acc * 10 + digit)
     } else {
@@ -234,7 +254,7 @@ let parse = (input: string): Ast.t => {
   // Check that we consumed all tokens (except EOF)
   switch peek(finalParser) {
   | EOF => expr
-  | _ => raise(ParseError("Unexpected tokens after expression"))
+  | token => raise(ParseError(`Unexpected tokens after expression: ${printToken(token)}`))
   }
 }
 
