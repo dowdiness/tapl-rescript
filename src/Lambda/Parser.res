@@ -239,7 +239,7 @@ let parse = (input: string): Ast.t => {
 }
 
 // Convenience functions
-let parseAndCompile = (input: string): Compile.ANF.t => {
+let parseAndCompile = (input: string): ANF.t => {
   input->parse->Compile.Compiler.compile
 }
 
