@@ -2,15 +2,15 @@ import React from 'react';
 import { Text, Box } from 'ink';
 import zod from 'zod';
 // @ts-ignore - ReScript compiled modules
-import * as Parser from '../../../src/Lambda/Parser.bs.mjs';
+import * as Parser from '../../../src/Lambda/Parser.mjs';
 // @ts-ignore - ReScript compiled modules
-import * as Compiler from '../../../src/Lambda/Compile.bs.mjs';
+import * as Compiler from '../../../src/Lambda/Compile.mjs';
 // @ts-ignore - ReScript compiled modules
-import * as Ast from "../../../src/Lambda/Ast.bs.mjs";
+import * as Ast from "../../../src/Lambda/Ast.mjs";
 // @ts-ignore - ReScript compiled modules
-import * as ANF from "../../../src/Lambda/ANF.bs.mjs";
+import * as ANF from "../../../src/Lambda/ANF.mjs";
 // @ts-ignore - ReScript compiled modules
-import * as ClosureConversion from "../../../src/Lambda/ClosureConversion.bs.mjs";
+import * as ClosureConversion from "../../../src/Lambda/ClosureConversion.mjs";
 export const options = zod.object({
     phase: zod
         .number()
