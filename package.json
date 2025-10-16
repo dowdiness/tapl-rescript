@@ -10,7 +10,7 @@
   "author": "Koji Ishimoto",
   "license": "ISC",
   "bin": {
-    "lambda": "./dist/cli/cli.js"
+    "lambda": "dist/cli/cli.js"
   },
   "imports": {
     "#parser": "./src/Lambda/Parser.bs.mjs",
