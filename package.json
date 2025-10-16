@@ -1,6 +1,6 @@
 {
   "name": "@antisatori/tapl",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "lambda calculus compiler based on Types and Programming Languages",
   "main": "index.js",
   "type": "module",
