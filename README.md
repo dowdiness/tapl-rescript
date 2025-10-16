@@ -1,16 +1,4 @@
-# TAPL implementations in ReScript
-
-Several implementations of exercises from the book, [Types and Programming Languages](https://www.cis.upenn.edu/~bcpierce/tapl) in [ReScript](https://rescript-lang.org).
-
-- [SmallStepArith](https://github.com/dowdiness/tapl-rescript/blob/main/src/SmallStepArith.res) is an implementation of untyped arithmetic expressions from Chapter 4.
-
-- [DeBrujin](https://github.com/dowdiness/tapl-rescript/blob/main/src/DeBrujin.res) is an implementation of untyped lambda calculus from Chapter 7.
-
-- [Typedlambda](https://github.com/dowdiness/tapl-rescript/blob/main/src/Typedlambda.res) is an implementation of typed lambda calculus from Chapter 10.
-
-- [Subtyping](https://github.com/dowdiness/tapl-rescript/blob/main/src/Subtyping.res) is an implementation of typed lambda calculus with Subtyping from Chapter 15.
-
-## Lambda Compiler
+# Lambda Compiler
 
 A lambda calculus compiler that generates LLVM IR. Use the CLI for easy compilation:
 
@@ -68,8 +56,6 @@ entry:
 
 ### Running LLVM Output
 
-main.llに保存してllvmのインストールしている状態で実行すると
-
 ```sh
 # Compile expression to LLVM
 lambda compile "((λx.x + 8) (12 - 5))" > main.ll
@@ -77,7 +63,3 @@ lambda compile "((λx.x + 8) (12 - 5))" > main.ll
 # Compile and run with LLVM
 llc main.ll && gcc main.s -o main && ./main; echo $?
 ```
-
-((λx.x + 8) (12 - 5))の計算結果である15が出力されます。
-
-For more details on the CLI, see [cli/README.md](./cli/README.md).
