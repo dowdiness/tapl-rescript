@@ -24,11 +24,11 @@
     "lambda": "dist/cli/cli.js"
   },
   "imports": {
-    "#parser": "./src/Lambda/Parser.bs.mjs",
-    "#compiler": "./src/Lambda/Compile.bs.mjs",
-    "#ast": "./src/Lambda/Ast.bs.mjs",
-    "#anf": "./src/Lambda/ANF.bs.mjs",
-    "#closure-conversion": "./src/Lambda/ClosureConversion.bs.mjs"
+    "#parser": "./src/Lambda/Parser.mjs",
+    "#compiler": "./src/Lambda/Compile.mjs",
+    "#ast": "./src/Lambda/Ast.mjs",
+    "#anf": "./src/Lambda/ANF.mjs",
+    "#closure-conversion": "./src/Lambda/ClosureConversion.mjs"
   },
   "scripts": {
     "start": "./dist/cli/cli.js",
