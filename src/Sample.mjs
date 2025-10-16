@@ -2,7 +2,7 @@
 
 import * as Caml_format from "rescript/lib/es6/caml_format.js";
 import * as PervasivesU from "rescript/lib/es6/pervasivesU.js";
-import * as Core__Option from "@rescript/core/src/Core__Option.bs.mjs";
+import * as Core__Option from "@rescript/core/src/Core__Option.mjs";
 
 function isDigit(c) {
   if (c >= "0") {
