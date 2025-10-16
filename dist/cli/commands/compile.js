@@ -1,13 +1,16 @@
 import React from 'react';
 import { Text, Box } from 'ink';
 import zod from 'zod';
-import { createRequire } from 'module';
-import * as Parser from '#parser';
-import * as Compiler from '#compiler';
-import * as Ast from "#ast";
-import * as ANF from "#anf";
-import * as ClosureConversion from "#closure-conversion";
-const require = createRequire(import.meta.url);
+// @ts-ignore - ReScript compiled modules
+import * as Parser from '../../../src/Lambda/Parser.bs.mjs';
+// @ts-ignore - ReScript compiled modules
+import * as Compiler from '../../../src/Lambda/Compile.bs.mjs';
+// @ts-ignore - ReScript compiled modules
+import * as Ast from "../../../src/Lambda/Ast.bs.mjs";
+// @ts-ignore - ReScript compiled modules
+import * as ANF from "../../../src/Lambda/ANF.bs.mjs";
+// @ts-ignore - ReScript compiled modules
+import * as ClosureConversion from "../../../src/Lambda/ClosureConversion.bs.mjs";
 export const options = zod.object({
     phase: zod
         .number()

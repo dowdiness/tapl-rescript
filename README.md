@@ -1,16 +1,30 @@
-# Lambda Compiler
+# @antisatori/tapl
 
-A lambda calculus compiler that generates LLVM IR. Use the CLI for easy compilation:
+A lambda calculus compiler that generates LLVM IR, based on "Types and Programming Languages" by Benjamin C. Pierce.
+
+[![npm version](https://badge.fury.io/js/@antisatori%2Ftapl.svg)](https://www.npmjs.com/package/@antisatori/tapl)
+
+## Installation
 
 ```bash
-# Install and build
-pnpm install
-pnpm run build
+npm install -g @antisatori/tapl
+```
 
+Or use with npx:
+
+```bash
+npx @antisatori/tapl compile "λx.x + 1"
+```
+
+## Usage
+
+### Command Line Interface
+
+```bash
 # Compile lambda expressions
 lambda compile "((λx.x + 8) (12 - 5))"
 
-# Show different phases
+# Show different compilation phases
 lambda compile --phase=1 "1 + 2"       # Basic arithmetic
 lambda compile --phase=2 "λx.x"         # Functions
 lambda compile --phase=3 "((λx.x + 8) (12 - 5))"  # Closures (default)
@@ -23,12 +37,17 @@ lambda compile --anf "λx.x + 1"  # A-Normal Form
 
 ### Programmatic Usage
 
-```js
+```javascript
+import { parse } from '@antisatori/tapl';
+import { Compiler } from '@antisatori/tapl';
+
 let source = "((λx.x + 8) (12 - 5))"
 let testApp = parse(source)
-let llvm = Compile.Compiler.compileToLLVM(testApp, 3)
-Console.log(llvm)
+let llvm = Compiler.compileToLLVM(testApp, 3)
+console.log(llvm)
 ```
+
+### Example Output
 
 ```llvm
 define i64 @f1(i64 %env5, i64 %x0) {
@@ -56,10 +75,50 @@ entry:
 
 ### Running LLVM Output
 
-```sh
+```bash
 # Compile expression to LLVM
 lambda compile "((λx.x + 8) (12 - 5))" > main.ll
 
 # Compile and run with LLVM
 llc main.ll && gcc main.s -o main && ./main; echo $?
 ```
+
+## Features
+
+- **Lambda Calculus Syntax**: Supports `λx.e`, `(e1 e2)`, `e1 + e2`, `if e1 then e2 else e3`
+- **Multi-stage Compilation Pipeline**:
+  - Parsing → AST
+  - Alpha renaming
+  - ANF (A-Normal Form) conversion
+  - Closure conversion
+  - Hoisting
+  - LLVM IR generation
+- **Four LLVM Phases**:
+  1. Basic arithmetic and primitives
+  2. Function definitions and direct calls
+  3. Closures with tuples and memory management
+  4. Control flow (if/then/else with basic blocks)
+
+## Development
+
+```bash
+# Install dependencies
+pnpm install
+
+# Build
+pnpm run build
+
+# Run tests
+pnpm run test
+
+# Watch mode
+pnpm run res:dev
+```
+
+## License
+
+ISC © Koji Ishimoto
+
+## Related
+
+Based on "Types and Programming Languages" by Benjamin C. Pierce. This implementation focuses on the lambda calculus compiler with LLVM IR generation.

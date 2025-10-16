@@ -1,17 +1,25 @@
 {
   "name": "@antisatori/tapl",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "lambda calculus compiler based on Types and Programming Languages",
-  "main": "/src/Lambda/Compile.bs.mjs",
+  "main": "index.js",
   "type": "module",
   "keywords": [
-    "rescript"
+    "rescript",
+    "lambda-calculus",
+    "compiler",
+    "llvm"
   ],
   "author": "Koji Ishimoto",
   "license": "ISC",
-    "publishConfig": {
+  "publishConfig": {
     "access": "public"
   },
+  "files": [
+    "src/**/*.bs.mjs",
+    "dist/cli/**/*",
+    "README.md"
+  ],
   "bin": {
     "lambda": "dist/cli/cli.js"
   },
