@@ -340,7 +340,7 @@ describe("ANF Conversion", (function () {
 
 describe("Free Variables Computation", (function () {
         test("simple halt", (function () {
-                var fvs = ClosureConversion.compute({
+                var fvs = ClosureConversion.collectFVs({
                       TAG: "Halt",
                       _0: {
                         TAG: "AtomVar",
@@ -350,7 +350,7 @@ describe("Free Variables Computation", (function () {
                 expect(Belt_SetString.has(fvs, "x")).toBeTruthy();
               }));
         test("halt with integer", (function () {
-                var fvs = ClosureConversion.compute({
+                var fvs = ClosureConversion.collectFVs({
                       TAG: "Halt",
                       _0: {
                         TAG: "AtomInt",
@@ -360,7 +360,7 @@ describe("Free Variables Computation", (function () {
                 expect(Belt_SetString.size(fvs)).toBe(0);
               }));
         test("binary operation", (function () {
-                var fvs = ClosureConversion.compute({
+                var fvs = ClosureConversion.collectFVs({
                       TAG: "Bop",
                       _0: "r",
                       _1: "Plus",

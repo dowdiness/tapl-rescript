@@ -1,5 +1,6 @@
-// Hoisting transformation - CORRECTED IMPLEMENTATION
+// Hoisting transformation
 module Hoisting = {
+  exception NotFoundJointPoint(ANF.t)
   // Join point information
   type join_point = {
     name: Ast.varName,
@@ -108,7 +109,8 @@ module Hoisting = {
               }
             }
           | Some({body, param: None, _}) => eliminate(body)
-          | None => t // Should not happen in well-formed code
+          // Should not happen in well-formed code
+          | None => raise(NotFoundJointPoint(t))
           }
         }
       | Join(_, _, _, cont) => eliminate(cont) // Remove join point, keep continuation

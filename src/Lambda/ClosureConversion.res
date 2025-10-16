@@ -1,11 +1,11 @@
 // Free variables computation
-let rec compute = (t: ANF.t): Belt.Set.String.t => {
+let rec collectFVs = (t: ANF.t): Belt.Set.String.t => {
   switch t {
   | Halt(AtomVar(x)) => Belt.Set.String.fromArray([x])
   | Halt(_) => Belt.Set.String.empty
   | Fun(f, xs, e, e') => {
-      let fvE = compute(e)
-      let fvE' = compute(e')
+      let fvE = collectFVs(e)
+      let fvE' = collectFVs(e')
       let bound = Belt.Set.String.fromArray(Array.concat([f], List.toArray(xs)))
       Belt.Set.String.union(
         Belt.Set.String.diff(fvE, bound),
@@ -13,8 +13,8 @@ let rec compute = (t: ANF.t): Belt.Set.String.t => {
       )
     }
   | Join(j, Some(p), e, e') => {
-      let fvE = compute(e)
-      let fvE' = compute(e')
+      let fvE = collectFVs(e)
+      let fvE' = collectFVs(e')
       let bound = Belt.Set.String.fromArray([j, p])
       Belt.Set.String.union(
         Belt.Set.String.diff(fvE, bound),
@@ -22,8 +22,8 @@ let rec compute = (t: ANF.t): Belt.Set.String.t => {
       )
     }
   | Join(j, None, e, e') => {
-      let fvE = compute(e)
-      let fvE' = compute(e')
+      let fvE = collectFVs(e)
+      let fvE' = collectFVs(e')
       let bound = Belt.Set.String.fromArray([j])
       Belt.Set.String.union(
         Belt.Set.String.diff(fvE, bound),
@@ -44,7 +44,7 @@ let rec compute = (t: ANF.t): Belt.Set.String.t => {
         )
         ->List.toArray
         ->Array.flat
-      let fvE = compute(e)
+      let fvE = collectFVs(e)
       Belt.Set.String.union(
         Belt.Set.String.fromArray(Array.concat([f], atomVars)),
         Belt.Set.String.diff(fvE, Belt.Set.String.fromArray([r])),
@@ -53,45 +53,45 @@ let rec compute = (t: ANF.t): Belt.Set.String.t => {
   | Bop(r, _, x, y, e) => {
       let atomVars =
         [x, y]
-        ->Array.map(atom =>
+        ->Array.flatMap(atom =>
           switch atom {
           | AtomVar(x) => [x]
           | _ => []
           }
         )
-        ->Array.flat
-      let fvE = compute(e)
+        ->Belt.Set.String.fromArray
+      let fvE = collectFVs(e)
       Belt.Set.String.union(
-        Belt.Set.String.fromArray(atomVars),
+        atomVars,
         Belt.Set.String.diff(fvE, Belt.Set.String.fromArray([r])),
       )
     }
   | If(AtomVar(x), t, f) => {
       Belt.Set.String.union(
         Belt.Set.String.fromArray([x]),
-        Belt.Set.String.union(compute(t), compute(f)),
+        Belt.Set.String.union(collectFVs(t), collectFVs(f)),
       )
     }
-  | If(_, t, f) => Belt.Set.String.union(compute(t), compute(f))
+  | If(_, t, f) => Belt.Set.String.union(collectFVs(t), collectFVs(f))
   | Tuple(r, vs, e) => {
       let atomVars =
         vs
-        ->List.map(atom =>
+        ->List.filterMap(atom =>
           switch atom {
-          | AtomVar(x) => [x]
-          | _ => []
+          | AtomVar(x) => Some(x)
+          | _ => None
           }
         )
         ->List.toArray
-        ->Array.flat
-      let fvE = compute(e)
+        ->Belt.Set.String.fromArray
+      let fvE = collectFVs(e)
       Belt.Set.String.union(
-        Belt.Set.String.fromArray(atomVars),
+        atomVars,
         Belt.Set.String.diff(fvE, Belt.Set.String.fromArray([r])),
       )
     }
   | Proj(r, x, _, e) => {
-      let fvE = compute(e)
+      let fvE = collectFVs(e)
       Belt.Set.String.union(
         Belt.Set.String.fromArray([x]),
         Belt.Set.String.diff(fvE, Belt.Set.String.fromArray([r])),
@@ -101,12 +101,15 @@ let rec compute = (t: ANF.t): Belt.Set.String.t => {
 }
 
 // Closure conversion
+// 自由変数の出現をTupleとProjを使った形に置き換える。
+// 関数本体の自由変数の出現場所はProjになり、関数の戻り値はTupleになる。
+// 関数自体はグローバル変数扱いにする。
 let convert = {
   let rec go = (t: ANF.t): ANF.t => {
     switch t {
     | Fun(f, xs, e, e') => {
         let env = Ast.fresh("env")
-        let allFvs = compute(e)
+        let allFvs = collectFVs(e)
         let params = Belt.Set.String.fromArray(List.toArray(xs))
         let fvs = Belt.Set.String.diff(allFvs, params)->Belt.Set.String.toArray->List.fromArray
 

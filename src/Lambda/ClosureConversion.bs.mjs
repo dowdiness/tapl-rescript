@@ -4,7 +4,7 @@ import * as Ast from "./Ast.bs.mjs";
 import * as Core__List from "@rescript/core/src/Core__List.bs.mjs";
 import * as Belt_SetString from "rescript/lib/es6/belt_SetString.js";
 
-function compute(t) {
+function collectFVs(t) {
   switch (t.TAG) {
     case "Halt" :
         var x = t._0;
@@ -18,24 +18,24 @@ function compute(t) {
         }
     case "Fun" :
         var f = t._0;
-        var fvE = compute(t._2);
-        var fvE$p = compute(t._3);
+        var fvE = collectFVs(t._2);
+        var fvE$p = collectFVs(t._3);
         var bound = Belt_SetString.fromArray([f].concat(Core__List.toArray(t._1)));
         return Belt_SetString.union(Belt_SetString.diff(fvE, bound), Belt_SetString.diff(fvE$p, Belt_SetString.fromArray([f])));
     case "Join" :
         var p = t._1;
         var j = t._0;
         if (p !== undefined) {
-          var fvE$1 = compute(t._2);
-          var fvE$p$1 = compute(t._3);
+          var fvE$1 = collectFVs(t._2);
+          var fvE$p$1 = collectFVs(t._3);
           var bound$1 = Belt_SetString.fromArray([
                 j,
                 p
               ]);
           return Belt_SetString.union(Belt_SetString.diff(fvE$1, bound$1), Belt_SetString.diff(fvE$p$1, bound$1));
         }
-        var fvE$2 = compute(t._2);
-        var fvE$p$2 = compute(t._3);
+        var fvE$2 = collectFVs(t._2);
+        var fvE$p$2 = collectFVs(t._3);
         var bound$2 = Belt_SetString.fromArray([j]);
         return Belt_SetString.union(Belt_SetString.diff(fvE$2, bound$2), Belt_SetString.diff(fvE$p$2, bound$2));
     case "Jump" :
@@ -66,50 +66,50 @@ function compute(t) {
                         
                       }
                     }))).flat();
-        var fvE$3 = compute(t._3);
+        var fvE$3 = collectFVs(t._3);
         return Belt_SetString.union(Belt_SetString.fromArray([t._1].concat(atomVars)), Belt_SetString.diff(fvE$3, Belt_SetString.fromArray([t._0])));
     case "Bop" :
-        var atomVars$1 = [
-              t._2,
-              t._3
-            ].map(function (atom) {
-                switch (atom.TAG) {
-                  case "AtomVar" :
-                      return [atom._0];
-                  case "AtomInt" :
-                  case "AtomGlob" :
-                      return [];
-                  
-                }
-              }).flat();
-        var fvE$4 = compute(t._4);
-        return Belt_SetString.union(Belt_SetString.fromArray(atomVars$1), Belt_SetString.diff(fvE$4, Belt_SetString.fromArray([t._0])));
+        var atomVars$1 = Belt_SetString.fromArray([
+                t._2,
+                t._3
+              ].flatMap(function (atom) {
+                  switch (atom.TAG) {
+                    case "AtomVar" :
+                        return [atom._0];
+                    case "AtomInt" :
+                    case "AtomGlob" :
+                        return [];
+                    
+                  }
+                }));
+        var fvE$4 = collectFVs(t._4);
+        return Belt_SetString.union(atomVars$1, Belt_SetString.diff(fvE$4, Belt_SetString.fromArray([t._0])));
     case "If" :
         var x$1 = t._0;
         switch (x$1.TAG) {
           case "AtomVar" :
-              return Belt_SetString.union(Belt_SetString.fromArray([x$1._0]), Belt_SetString.union(compute(t._1), compute(t._2)));
+              return Belt_SetString.union(Belt_SetString.fromArray([x$1._0]), Belt_SetString.union(collectFVs(t._1), collectFVs(t._2)));
           case "AtomInt" :
           case "AtomGlob" :
               break;
           
         }
-        return Belt_SetString.union(compute(t._1), compute(t._2));
+        return Belt_SetString.union(collectFVs(t._1), collectFVs(t._2));
     case "Tuple" :
-        var atomVars$2 = Core__List.toArray(Core__List.map(t._1, (function (atom) {
-                      switch (atom.TAG) {
-                        case "AtomVar" :
-                            return [atom._0];
-                        case "AtomInt" :
-                        case "AtomGlob" :
-                            return [];
-                        
-                      }
-                    }))).flat();
-        var fvE$5 = compute(t._2);
-        return Belt_SetString.union(Belt_SetString.fromArray(atomVars$2), Belt_SetString.diff(fvE$5, Belt_SetString.fromArray([t._0])));
+        var atomVars$2 = Belt_SetString.fromArray(Core__List.toArray(Core__List.filterMap(t._1, (function (atom) {
+                        switch (atom.TAG) {
+                          case "AtomVar" :
+                              return atom._0;
+                          case "AtomInt" :
+                          case "AtomGlob" :
+                              return ;
+                          
+                        }
+                      }))));
+        var fvE$5 = collectFVs(t._2);
+        return Belt_SetString.union(atomVars$2, Belt_SetString.diff(fvE$5, Belt_SetString.fromArray([t._0])));
     case "Proj" :
-        var fvE$6 = compute(t._3);
+        var fvE$6 = collectFVs(t._3);
         return Belt_SetString.union(Belt_SetString.fromArray([t._1]), Belt_SetString.diff(fvE$6, Belt_SetString.fromArray([t._0])));
     
   }
@@ -122,7 +122,7 @@ function go(t) {
         var xs = t._1;
         var f = t._0;
         var env = Ast.fresh("env");
-        var allFvs = compute(e);
+        var allFvs = collectFVs(e);
         var params = Belt_SetString.fromArray(Core__List.toArray(xs));
         var fvs = Core__List.fromArray(Belt_SetString.toArray(Belt_SetString.diff(allFvs, params)));
         var addProjections = function (body, fvList, index) {
@@ -240,7 +240,7 @@ function go(t) {
 var convert = go;
 
 export {
-  compute ,
+  collectFVs ,
   convert ,
 }
 /* Ast Not a pure module */

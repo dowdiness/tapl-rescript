@@ -7,7 +7,10 @@ import * as Core__Array from "@rescript/core/src/Core__Array.bs.mjs";
 import * as PervasivesU from "rescript/lib/es6/pervasivesU.js";
 import * as Core__Option from "@rescript/core/src/Core__Option.bs.mjs";
 import * as Belt_MapString from "rescript/lib/es6/belt_MapString.js";
+import * as Caml_exceptions from "rescript/lib/es6/caml_exceptions.js";
 import * as ClosureConversion from "./ClosureConversion.bs.mjs";
+
+var NotFoundJointPoint = /* @__PURE__ */Caml_exceptions.create("Compile.Hoisting.NotFoundJointPoint");
 
 function substituteVar(term, $$var, replacement) {
   var substAtom = function (atom) {
@@ -216,21 +219,25 @@ function eliminateJoinPoints(term) {
         case "Jump" :
             var arg = t._1;
             var match = Belt_MapString.get(joinPoints, t._0);
-            if (match === undefined) {
-              return t;
-            }
-            var p = match.param;
-            if (p !== undefined) {
-              var body = match.body;
-              if (arg !== undefined) {
-                _t = substituteVar(body, p, arg);
+            if (match !== undefined) {
+              var p = match.param;
+              if (p !== undefined) {
+                var body = match.body;
+                if (arg !== undefined) {
+                  _t = substituteVar(body, p, arg);
+                  continue ;
+                }
+                _t = body;
                 continue ;
               }
-              _t = body;
+              _t = match.body;
               continue ;
             }
-            _t = match.body;
-            continue ;
+            throw {
+                  RE_EXN_ID: NotFoundJointPoint,
+                  _1: t,
+                  Error: new Error()
+                };
         case "App" :
             return {
                     TAG: "App",
@@ -381,6 +388,7 @@ function hoist(term) {
 }
 
 var Hoisting = {
+  NotFoundJointPoint: NotFoundJointPoint,
   substituteVar: substituteVar,
   collectJoinPoints: collectJoinPoints,
   eliminateJoinPoints: eliminateJoinPoints,
