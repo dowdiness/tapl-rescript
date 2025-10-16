@@ -174,65 +174,44 @@ module Hoisting = {
 
 // LLVMlite Lowering
 module LLVMLowering = {
-  // Phase 1: Basic arithmetic operations and primitives
-  let lowerPhase1 = (anf: ANF.t): string => {
-    let instructions = ref(list{})
-
-    let rec go = (t: ANF.t) => {
-      switch t {
-      | Halt(AtomInt(n)) =>
-          instructions := list{`ret i64 ${Int.toString(n)}`, ...instructions.contents}
-      | Halt(AtomVar(x)) =>
-          instructions := list{`ret i64 %${x}`, ...instructions.contents}
-      | Bop(r, Plus, AtomInt(x), AtomInt(y), e) => {
-          instructions := list{`%${r} = add i64 ${Int.toString(x)}, ${Int.toString(y)}`, ...instructions.contents}
-          go(e)
-        }
-      | Bop(r, Minus, AtomInt(x), AtomInt(y), e) => {
-          instructions := list{`%${r} = sub i64 ${Int.toString(x)}, ${Int.toString(y)}`, ...instructions.contents}
-          go(e)
-        }
-      | Bop(r, Plus, AtomVar(x), AtomInt(y), e) => {
-          instructions := list{`%${r} = add i64 %${x}, ${Int.toString(y)}`, ...instructions.contents}
-          go(e)
-        }
-      | Bop(r, Plus, AtomInt(x), AtomVar(y), e) => {
-          instructions := list{`%${r} = add i64 ${Int.toString(x)}, %${y}`, ...instructions.contents}
-          go(e)
-        }
-      | Bop(r, Plus, AtomVar(x), AtomVar(y), e) => {
-          instructions := list{`%${r} = add i64 %${x}, %${y}`, ...instructions.contents}
-          go(e)
-        }
-      | Bop(r, Minus, AtomVar(x), AtomInt(y), e) => {
-          instructions := list{`%${r} = sub i64 %${x}, ${Int.toString(y)}`, ...instructions.contents}
-          go(e)
-        }
-      | Bop(r, Minus, AtomInt(x), AtomVar(y), e) => {
-          instructions := list{`%${r} = sub i64 ${Int.toString(x)}, %${y}`, ...instructions.contents}
-          go(e)
-        }
-      | Bop(r, Minus, AtomVar(x), AtomVar(y), e) => {
-          instructions := list{`%${r} = sub i64 %${x}, %${y}`, ...instructions.contents}
-          go(e)
-        }
-      | _ => failwith("Phase 1: Unsupported ANF construct")
-      }
-    }
-
-    go(anf)
-
-    let body = instructions.contents->List.reverse->List.toArray->Array.join("\n  ")
-    `define i64 @main() {\nentry:\n  ${body}\n}`
-  }
-
   // Helper function to convert atom to string representation
-  let atomToString = (atom: ANF.atom): string => {
+  let atomToLLVM = (atom: ANF.atom): string => {
     switch atom {
     | AtomInt(i) => Int.toString(i)
     | AtomVar(x) => `%${x}`
     | AtomGlob(x) => `@${x}`
     }
+  }
+
+  let atomToTypedLLVM = atom => {
+    `i64 ${atomToLLVM(atom)}`
+  }
+
+  let bopToLLVM = (r: Ast.varName, bop: Ast.bop, x, y): string => {
+    let x = atomToLLVM(x)
+    let y = atomToLLVM(y)
+    switch bop {
+      | Plus => `%${r} = add i64 ${x}, ${y}`
+      | Minus => `%${r} = sub i64 ${x}, ${y}`
+    }
+  }
+  // Phase 1: Basic arithmetic operations and primitives
+  let lowerPhase1 = (anf: ANF.t): string => {
+    let rec go = (t: ANF.t, insts: list<string>) => {
+      switch t {
+      | Halt(AtomInt(n)) => insts->List.add(`ret i64 ${Int.toString(n)}`)
+      | Halt(AtomVar(x)) => insts->List.add(`ret i64 %${x}`)
+      | Bop(r, bop, x, y, e) => {
+          go(e, insts->List.add(bopToLLVM(r, bop, x, y)))
+        }
+      | _ => failwith("Phase 1: Unsupported ANF construct")
+      }
+    }
+
+    let insts = go(anf, list{})
+
+    let body = insts->List.reverse->List.toArray->Array.join("\n  ")
+    `define i64 @main() {\nentry:\n  ${body}\n}`
   }
 
   // Phase 2: Function definitions and calls
@@ -254,11 +233,11 @@ module LLVMLowering = {
             | Halt(AtomVar(x)) =>
                 bodyInstructions := list{`ret i64 %${x}`, ...bodyInstructions.contents}
             | Bop(r, Plus, x, y, e) => {
-                bodyInstructions := list{`%${r} = add i64 ${atomToString(x)}, ${atomToString(y)}`, ...bodyInstructions.contents}
+                bodyInstructions := list{`%${r} = add i64 ${atomToLLVM(x)}, ${atomToLLVM(y)}`, ...bodyInstructions.contents}
                 generateBody(e)
               }
             | Bop(r, Minus, x, y, e) => {
-                bodyInstructions := list{`%${r} = sub i64 ${atomToString(x)}, ${atomToString(y)}`, ...bodyInstructions.contents}
+                bodyInstructions := list{`%${r} = sub i64 ${atomToLLVM(x)}, ${atomToLLVM(y)}`, ...bodyInstructions.contents}
                 generateBody(e)
               }
             | _ => failwith("Phase 2: Unsupported construct in function body")
@@ -290,22 +269,16 @@ module LLVMLowering = {
           mainInstructions := list{`ret i64 ${Int.toString(n)}`, ...mainInstructions.contents}
       | App(r, f, args, e) => {
           // Simple direct function call (Phase 2 - no closures yet)
-          let argList = args->List.map(atom => {
-            switch atom {
-            | AtomInt(i) => `i64 ${Int.toString(i)}`
-            | AtomVar(x) => `i64 %${x}`
-            | AtomGlob(x) => `i64 @${x}`
-            }
-          })->List.toArray->Array.join(", ")
+          let argList = args->List.map(atomToTypedLLVM)->List.toArray->Array.join(", ")
           mainInstructions := list{`%${r} = call i64 @${f}(${argList})`, ...mainInstructions.contents}
           extractFunctions(e)
         }
       | Bop(r, Plus, x, y, e) => {
-          mainInstructions := list{`%${r} = add i64 ${atomToString(x)}, ${atomToString(y)}`, ...mainInstructions.contents}
+          mainInstructions := list{`%${r} = add i64 ${atomToLLVM(x)}, ${atomToLLVM(y)}`, ...mainInstructions.contents}
           extractFunctions(e)
         }
       | Bop(r, Minus, x, y, e) => {
-          mainInstructions := list{`%${r} = sub i64 ${atomToString(x)}, ${atomToString(y)}`, ...mainInstructions.contents}
+          mainInstructions := list{`%${r} = sub i64 ${atomToLLVM(x)}, ${atomToLLVM(y)}`, ...mainInstructions.contents}
           extractFunctions(e)
         }
       | _ => failwith("Phase 2: Unsupported ANF construct")
@@ -343,11 +316,11 @@ module LLVMLowering = {
             | Halt(AtomVar(x)) =>
                 bodyInstructions := list{`ret i64 %${x}`, ...bodyInstructions.contents}
             | Bop(r, Plus, x, y, e) => {
-                bodyInstructions := list{`%${r} = add i64 ${atomToString(x)}, ${atomToString(y)}`, ...bodyInstructions.contents}
+                bodyInstructions := list{`%${r} = add i64 ${atomToLLVM(x)}, ${atomToLLVM(y)}`, ...bodyInstructions.contents}
                 generateBody(e)
               }
             | Bop(r, Minus, x, y, e) => {
-                bodyInstructions := list{`%${r} = sub i64 ${atomToString(x)}, ${atomToString(y)}`, ...bodyInstructions.contents}
+                bodyInstructions := list{`%${r} = sub i64 ${atomToLLVM(x)}, ${atomToLLVM(y)}`, ...bodyInstructions.contents}
                 generateBody(e)
               }
             | Tuple(r, vs, e) => {
@@ -367,7 +340,7 @@ module LLVMLowering = {
                       bodyInstructions := list{`%${tmpVar} = ptrtoint i64 (i64, i64)* @${fname} to i64`, ...bodyInstructions.contents}
                       `store i64 %${tmpVar}, i64* %${r}_gep${Int.toString(i)}`
                     }
-                  | _ => `store i64 ${atomToString(atom)}, i64* %${r}_gep${Int.toString(i)}`
+                  | _ => `store i64 ${atomToLLVM(atom)}, i64* %${r}_gep${Int.toString(i)}`
                   }
                   bodyInstructions := list{storeInstr, gepInstr, ...bodyInstructions.contents}
                 })->ignore
@@ -428,11 +401,11 @@ module LLVMLowering = {
           extractFunctions(e)
         }
       | Bop(r, Plus, x, y, e) => {
-          mainInstructions := list{`%${r} = add i64 ${atomToString(x)}, ${atomToString(y)}`, ...mainInstructions.contents}
+          mainInstructions := list{`%${r} = add i64 ${atomToLLVM(x)}, ${atomToLLVM(y)}`, ...mainInstructions.contents}
           extractFunctions(e)
         }
       | Bop(r, Minus, x, y, e) => {
-          mainInstructions := list{`%${r} = sub i64 ${atomToString(x)}, ${atomToString(y)}`, ...mainInstructions.contents}
+          mainInstructions := list{`%${r} = sub i64 ${atomToLLVM(x)}, ${atomToLLVM(y)}`, ...mainInstructions.contents}
           extractFunctions(e)
         }
       | Tuple(r, vs, e) => {
@@ -452,7 +425,7 @@ module LLVMLowering = {
                 mainInstructions := list{`%${tmpVar} = ptrtoint i64 (i64, i64)* @${fname} to i64`, ...mainInstructions.contents}
                 `store i64 %${tmpVar}, i64* %${r}_gep${Int.toString(i)}`
               }
-            | _ => `store i64 ${atomToString(atom)}, i64* %${r}_gep${Int.toString(i)}`
+            | _ => `store i64 ${atomToLLVM(atom)}, i64* %${r}_gep${Int.toString(i)}`
             }
             mainInstructions := list{storeInstr, gepInstr, ...mainInstructions.contents}
           })->ignore
@@ -516,11 +489,11 @@ module LLVMLowering = {
             | Halt(AtomVar(x)) =>
                 bodyInstructions := list{`ret i64 %${x}`, ...bodyInstructions.contents}
             | Bop(r, Plus, x, y, e) => {
-                bodyInstructions := list{`%${r} = add i64 ${atomToString(x)}, ${atomToString(y)}`, ...bodyInstructions.contents}
+                bodyInstructions := list{`%${r} = add i64 ${atomToLLVM(x)}, ${atomToLLVM(y)}`, ...bodyInstructions.contents}
                 generateBody(e)
               }
             | Bop(r, Minus, x, y, e) => {
-                bodyInstructions := list{`%${r} = sub i64 ${atomToString(x)}, ${atomToString(y)}`, ...bodyInstructions.contents}
+                bodyInstructions := list{`%${r} = sub i64 ${atomToLLVM(x)}, ${atomToLLVM(y)}`, ...bodyInstructions.contents}
                 generateBody(e)
               }
             | If(cond, thenBranch, elseBranch) => {
@@ -528,7 +501,7 @@ module LLVMLowering = {
                 let elseLabel = getNextLabel("else")
 
                 // Generate condition check
-                bodyInstructions := list{`%cond = icmp ne i64 ${atomToString(cond)}, 0`, ...bodyInstructions.contents}
+                bodyInstructions := list{`%cond = icmp ne i64 ${atomToLLVM(cond)}, 0`, ...bodyInstructions.contents}
                 bodyInstructions := list{`br i1 %cond, label %${thenLabel}, label %${elseLabel}`, ...bodyInstructions.contents}
 
                 // Generate then branch
@@ -571,7 +544,7 @@ module LLVMLowering = {
           let elseLabel = getNextLabel("else")
 
           // Generate condition check
-          mainInstructions := list{`%cond = icmp ne i64 ${atomToString(cond)}, 0`, ...mainInstructions.contents}
+          mainInstructions := list{`%cond = icmp ne i64 ${atomToLLVM(cond)}, 0`, ...mainInstructions.contents}
           mainInstructions := list{`br i1 %cond, label %${thenLabel}, label %${elseLabel}`, ...mainInstructions.contents}
 
           // Generate then branch
@@ -583,11 +556,11 @@ module LLVMLowering = {
           extractFunctions(elseBranch)
         }
       | Bop(r, Plus, x, y, e) => {
-          mainInstructions := list{`%${r} = add i64 ${atomToString(x)}, ${atomToString(y)}`, ...mainInstructions.contents}
+          mainInstructions := list{`%${r} = add i64 ${atomToLLVM(x)}, ${atomToLLVM(y)}`, ...mainInstructions.contents}
           extractFunctions(e)
         }
       | Bop(r, Minus, x, y, e) => {
-          mainInstructions := list{`%${r} = sub i64 ${atomToString(x)}, ${atomToString(y)}`, ...mainInstructions.contents}
+          mainInstructions := list{`%${r} = sub i64 ${atomToLLVM(x)}, ${atomToLLVM(y)}`, ...mainInstructions.contents}
           extractFunctions(e)
         }
       | Jump(j, None) => {

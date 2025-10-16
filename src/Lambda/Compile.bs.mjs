@@ -397,149 +397,7 @@ var Hoisting = {
   hoist: hoist
 };
 
-function lowerPhase1(anf) {
-  var instructions = {
-    contents: /* [] */0
-  };
-  var go = function (_t) {
-    while(true) {
-      var t = _t;
-      switch (t.TAG) {
-        case "Halt" :
-            var n = t._0;
-            switch (n.TAG) {
-              case "AtomInt" :
-                  instructions.contents = {
-                    hd: "ret i64 " + n._0.toString(),
-                    tl: instructions.contents
-                  };
-                  return ;
-              case "AtomVar" :
-                  instructions.contents = {
-                    hd: "ret i64 %" + n._0,
-                    tl: instructions.contents
-                  };
-                  return ;
-              case "AtomGlob" :
-                  return PervasivesU.failwith("Phase 1: Unsupported ANF construct");
-              
-            }
-        case "Bop" :
-            var r = t._0;
-            if (t._1 === "Plus") {
-              var x = t._2;
-              switch (x.TAG) {
-                case "AtomInt" :
-                    var y = t._3;
-                    var x$1 = x._0;
-                    switch (y.TAG) {
-                      case "AtomInt" :
-                          instructions.contents = {
-                            hd: "%" + r + " = add i64 " + x$1.toString() + ", " + y._0.toString(),
-                            tl: instructions.contents
-                          };
-                          _t = t._4;
-                          continue ;
-                      case "AtomVar" :
-                          instructions.contents = {
-                            hd: "%" + r + " = add i64 " + x$1.toString() + ", %" + y._0,
-                            tl: instructions.contents
-                          };
-                          _t = t._4;
-                          continue ;
-                      case "AtomGlob" :
-                          return PervasivesU.failwith("Phase 1: Unsupported ANF construct");
-                      
-                    }
-                case "AtomVar" :
-                    var y$1 = t._3;
-                    var x$2 = x._0;
-                    switch (y$1.TAG) {
-                      case "AtomInt" :
-                          instructions.contents = {
-                            hd: "%" + r + " = add i64 %" + x$2 + ", " + y$1._0.toString(),
-                            tl: instructions.contents
-                          };
-                          _t = t._4;
-                          continue ;
-                      case "AtomVar" :
-                          instructions.contents = {
-                            hd: "%" + r + " = add i64 %" + x$2 + ", %" + y$1._0,
-                            tl: instructions.contents
-                          };
-                          _t = t._4;
-                          continue ;
-                      case "AtomGlob" :
-                          return PervasivesU.failwith("Phase 1: Unsupported ANF construct");
-                      
-                    }
-                case "AtomGlob" :
-                    return PervasivesU.failwith("Phase 1: Unsupported ANF construct");
-                
-              }
-            } else {
-              var x$3 = t._2;
-              switch (x$3.TAG) {
-                case "AtomInt" :
-                    var y$2 = t._3;
-                    var x$4 = x$3._0;
-                    switch (y$2.TAG) {
-                      case "AtomInt" :
-                          instructions.contents = {
-                            hd: "%" + r + " = sub i64 " + x$4.toString() + ", " + y$2._0.toString(),
-                            tl: instructions.contents
-                          };
-                          _t = t._4;
-                          continue ;
-                      case "AtomVar" :
-                          instructions.contents = {
-                            hd: "%" + r + " = sub i64 " + x$4.toString() + ", %" + y$2._0,
-                            tl: instructions.contents
-                          };
-                          _t = t._4;
-                          continue ;
-                      case "AtomGlob" :
-                          return PervasivesU.failwith("Phase 1: Unsupported ANF construct");
-                      
-                    }
-                case "AtomVar" :
-                    var y$3 = t._3;
-                    var x$5 = x$3._0;
-                    switch (y$3.TAG) {
-                      case "AtomInt" :
-                          instructions.contents = {
-                            hd: "%" + r + " = sub i64 %" + x$5 + ", " + y$3._0.toString(),
-                            tl: instructions.contents
-                          };
-                          _t = t._4;
-                          continue ;
-                      case "AtomVar" :
-                          instructions.contents = {
-                            hd: "%" + r + " = sub i64 %" + x$5 + ", %" + y$3._0,
-                            tl: instructions.contents
-                          };
-                          _t = t._4;
-                          continue ;
-                      case "AtomGlob" :
-                          return PervasivesU.failwith("Phase 1: Unsupported ANF construct");
-                      
-                    }
-                case "AtomGlob" :
-                    return PervasivesU.failwith("Phase 1: Unsupported ANF construct");
-                
-              }
-            }
-        default:
-          return PervasivesU.failwith("Phase 1: Unsupported ANF construct");
-      }
-    };
-  };
-  go(anf);
-  var body = Core__List.toArray(Core__List.reverse(instructions.contents)).join("\n  ");
-  return "define i64 @main() {\nentry:\n  " + body + "\n}";
-}
-
-function atomToString(atom) {
+function atomToLLVM(atom) {
   switch (atom.TAG) {
     case "AtomInt" :
         return atom._0.toString();
@@ -549,6 +407,51 @@ function atomToString(atom) {
         return "@" + atom._0;
     
   }
+}
+
+function atomToTypedLLVM(atom) {
+  return "i64 " + atomToLLVM(atom);
+}
+
+function bopToLLVM(r, bop, x, y) {
+  var x$1 = atomToLLVM(x);
+  var y$1 = atomToLLVM(y);
+  if (bop === "Plus") {
+    return "%" + r + " = add i64 " + x$1 + ", " + y$1;
+  } else {
+    return "%" + r + " = sub i64 " + x$1 + ", " + y$1;
+  }
+}
+
+function lowerPhase1(anf) {
+  var go = function (_t, _insts) {
+    while(true) {
+      var insts = _insts;
+      var t = _t;
+      switch (t.TAG) {
+        case "Halt" :
+            var n = t._0;
+            switch (n.TAG) {
+              case "AtomInt" :
+                  return Core__List.add(insts, "ret i64 " + n._0.toString());
+              case "AtomVar" :
+                  return Core__List.add(insts, "ret i64 %" + n._0);
+              case "AtomGlob" :
+                  return PervasivesU.failwith("Phase 1: Unsupported ANF construct");
+              
+            }
+        case "Bop" :
+            _insts = Core__List.add(insts, bopToLLVM(t._0, t._1, t._2, t._3));
+            _t = t._4;
+            continue ;
+        default:
+          return PervasivesU.failwith("Phase 1: Unsupported ANF construct");
+      }
+    };
+  };
+  var insts = go(anf, /* [] */0);
+  var body = Core__List.toArray(Core__List.reverse(insts)).join("\n  ");
+  return "define i64 @main() {\nentry:\n  " + body + "\n}";
 }
 
 function lowerPhase2(anf) {
@@ -626,14 +529,14 @@ function lowerPhase2(anf) {
                       var r = bodyTerm._0;
                       if (bodyTerm._1 === "Plus") {
                         bodyInstructions.contents = {
-                          hd: "%" + r + " = add i64 " + atomToString(bodyTerm._2) + ", " + atomToString(bodyTerm._3),
+                          hd: "%" + r + " = add i64 " + atomToLLVM(bodyTerm._2) + ", " + atomToLLVM(bodyTerm._3),
                           tl: bodyInstructions.contents
                         };
                         _bodyTerm = bodyTerm._4;
                         continue ;
                       }
                       bodyInstructions.contents = {
-                        hd: "%" + r + " = sub i64 " + atomToString(bodyTerm._2) + ", " + atomToString(bodyTerm._3),
+                        hd: "%" + r + " = sub i64 " + atomToLLVM(bodyTerm._2) + ", " + atomToLLVM(bodyTerm._3),
                         tl: bodyInstructions.contents
                       };
                       _bodyTerm = bodyTerm._4;
@@ -654,17 +557,7 @@ function lowerPhase2(anf) {
             _t = t._3;
             continue ;
         case "App" :
-            var argList = Core__List.toArray(Core__List.map(t._2, (function (atom) {
-                          switch (atom.TAG) {
-                            case "AtomInt" :
-                                return "i64 " + atom._0.toString();
-                            case "AtomVar" :
-                                return "i64 %" + atom._0;
-                            case "AtomGlob" :
-                                return "i64 @" + atom._0;
-                            
-                          }
-                        }))).join(", ");
+            var argList = Core__List.toArray(Core__List.map(t._2, atomToTypedLLVM)).join(", ");
             mainInstructions.contents = {
               hd: "%" + t._0 + " = call i64 @" + t._1 + "(" + argList + ")",
               tl: mainInstructions.contents
@@ -675,14 +568,14 @@ function lowerPhase2(anf) {
             var r = t._0;
             if (t._1 === "Plus") {
               mainInstructions.contents = {
-                hd: "%" + r + " = add i64 " + atomToString(t._2) + ", " + atomToString(t._3),
+                hd: "%" + r + " = add i64 " + atomToLLVM(t._2) + ", " + atomToLLVM(t._3),
                 tl: mainInstructions.contents
               };
               _t = t._4;
               continue ;
             }
             mainInstructions.contents = {
-              hd: "%" + r + " = sub i64 " + atomToString(t._2) + ", " + atomToString(t._3),
+              hd: "%" + r + " = sub i64 " + atomToLLVM(t._2) + ", " + atomToLLVM(t._3),
               tl: mainInstructions.contents
             };
             _t = t._4;
@@ -778,14 +671,14 @@ function lowerPhase3(anf) {
                       var r = bodyTerm._0;
                       if (bodyTerm._1 === "Plus") {
                         bodyInstructions.contents = {
-                          hd: "%" + r + " = add i64 " + atomToString(bodyTerm._2) + ", " + atomToString(bodyTerm._3),
+                          hd: "%" + r + " = add i64 " + atomToLLVM(bodyTerm._2) + ", " + atomToLLVM(bodyTerm._3),
                           tl: bodyInstructions.contents
                         };
                         _bodyTerm = bodyTerm._4;
                         continue ;
                       }
                       bodyInstructions.contents = {
-                        hd: "%" + r + " = sub i64 " + atomToString(bodyTerm._2) + ", " + atomToString(bodyTerm._3),
+                        hd: "%" + r + " = sub i64 " + atomToLLVM(bodyTerm._2) + ", " + atomToLLVM(bodyTerm._3),
                         tl: bodyInstructions.contents
                       };
                       _bodyTerm = bodyTerm._4;
@@ -819,7 +712,7 @@ function lowerPhase3(anf) {
                               
                             }
                             if (exit === 1) {
-                              storeInstr = "store i64 " + atomToString(atom) + ", i64* %" + r$1 + "_gep" + i.toString();
+                              storeInstr = "store i64 " + atomToLLVM(atom) + ", i64* %" + r$1 + "_gep" + i.toString();
                             }
                             bodyInstructions.contents = {
                               hd: storeInstr,
@@ -898,14 +791,14 @@ function lowerPhase3(anf) {
             var r = t._0;
             if (t._1 === "Plus") {
               mainInstructions.contents = {
-                hd: "%" + r + " = add i64 " + atomToString(t._2) + ", " + atomToString(t._3),
+                hd: "%" + r + " = add i64 " + atomToLLVM(t._2) + ", " + atomToLLVM(t._3),
                 tl: mainInstructions.contents
               };
               _t = t._4;
               continue ;
             }
             mainInstructions.contents = {
-              hd: "%" + r + " = sub i64 " + atomToString(t._2) + ", " + atomToString(t._3),
+              hd: "%" + r + " = sub i64 " + atomToLLVM(t._2) + ", " + atomToLLVM(t._3),
               tl: mainInstructions.contents
             };
             _t = t._4;
@@ -939,7 +832,7 @@ function lowerPhase3(anf) {
                     
                   }
                   if (exit === 1) {
-                    storeInstr = "store i64 " + atomToString(atom) + ", i64* %" + r$1 + "_gep" + i.toString();
+                    storeInstr = "store i64 " + atomToLLVM(atom) + ", i64* %" + r$1 + "_gep" + i.toString();
                   }
                   mainInstructions.contents = {
                     hd: storeInstr,
@@ -1074,14 +967,14 @@ function lowerPhase4(anf) {
                       var r = bodyTerm._0;
                       if (bodyTerm._1 === "Plus") {
                         bodyInstructions.contents = {
-                          hd: "%" + r + " = add i64 " + atomToString(bodyTerm._2) + ", " + atomToString(bodyTerm._3),
+                          hd: "%" + r + " = add i64 " + atomToLLVM(bodyTerm._2) + ", " + atomToLLVM(bodyTerm._3),
                           tl: bodyInstructions.contents
                         };
                         _bodyTerm = bodyTerm._4;
                         continue ;
                       }
                       bodyInstructions.contents = {
-                        hd: "%" + r + " = sub i64 " + atomToString(bodyTerm._2) + ", " + atomToString(bodyTerm._3),
+                        hd: "%" + r + " = sub i64 " + atomToLLVM(bodyTerm._2) + ", " + atomToLLVM(bodyTerm._3),
                         tl: bodyInstructions.contents
                       };
                       _bodyTerm = bodyTerm._4;
@@ -1090,7 +983,7 @@ function lowerPhase4(anf) {
                       var thenLabel = getNextLabel("then");
                       var elseLabel = getNextLabel("else");
                       bodyInstructions.contents = {
-                        hd: "%cond = icmp ne i64 " + atomToString(bodyTerm._0) + ", 0",
+                        hd: "%cond = icmp ne i64 " + atomToLLVM(bodyTerm._0) + ", 0",
                         tl: bodyInstructions.contents
                       };
                       bodyInstructions.contents = {
@@ -1140,14 +1033,14 @@ function lowerPhase4(anf) {
             var r = t._0;
             if (t._1 === "Plus") {
               mainInstructions.contents = {
-                hd: "%" + r + " = add i64 " + atomToString(t._2) + ", " + atomToString(t._3),
+                hd: "%" + r + " = add i64 " + atomToLLVM(t._2) + ", " + atomToLLVM(t._3),
                 tl: mainInstructions.contents
               };
               _t = t._4;
               continue ;
             }
             mainInstructions.contents = {
-              hd: "%" + r + " = sub i64 " + atomToString(t._2) + ", " + atomToString(t._3),
+              hd: "%" + r + " = sub i64 " + atomToLLVM(t._2) + ", " + atomToLLVM(t._3),
               tl: mainInstructions.contents
             };
             _t = t._4;
@@ -1156,7 +1049,7 @@ function lowerPhase4(anf) {
             var thenLabel = getNextLabel("then");
             var elseLabel = getNextLabel("else");
             mainInstructions.contents = {
-              hd: "%cond = icmp ne i64 " + atomToString(t._0) + ", 0",
+              hd: "%cond = icmp ne i64 " + atomToLLVM(t._0) + ", 0",
               tl: mainInstructions.contents
             };
             mainInstructions.contents = {
@@ -1191,8 +1084,10 @@ function lowerPhase4(anf) {
 }
 
 var LLVMLowering = {
+  atomToLLVM: atomToLLVM,
+  atomToTypedLLVM: atomToTypedLLVM,
+  bopToLLVM: bopToLLVM,
   lowerPhase1: lowerPhase1,
-  atomToString: atomToString,
   lowerPhase2: lowerPhase2,
   lowerPhase3: lowerPhase3,
   lowerPhase4: lowerPhase4
