@@ -220,7 +220,7 @@ module LLVMLowering = {
 
     go(anf)
 
-    let body = instructions.contents->List.reverse->List.toArray->Array.joinWith("\n  ")
+    let body = instructions.contents->List.reverse->List.toArray->Array.join("\n  ")
     `define i64 @main() {\nentry:\n  ${body}\n}`
   }
 
@@ -242,7 +242,7 @@ module LLVMLowering = {
       switch t {
       | Fun(f, params, body, cont) => {
           // Generate function definition
-          let paramList = params->List.map(p => `i64 %${p}`)->List.toArray->Array.joinWith(", ")
+          let paramList = params->List.map(p => `i64 %${p}`)->List.toArray->Array.join(", ")
           let bodyInstructions = ref(list{})
 
           let rec generateBody = (bodyTerm: ANF.t) => {
@@ -265,7 +265,7 @@ module LLVMLowering = {
 
           generateBody(body)
 
-          let bodyStr = bodyInstructions.contents->List.reverse->List.toArray->Array.joinWith("\n  ")
+          let bodyStr = bodyInstructions.contents->List.reverse->List.toArray->Array.join("\n  ")
           let funcDef = `define i64 @${f}(${paramList}) {\nentry:\n  ${bodyStr}\n}`
 
           functions := list{funcDef, ...functions.contents}
@@ -294,7 +294,7 @@ module LLVMLowering = {
             | AtomVar(x) => `i64 %${x}`
             | AtomGlob(x) => `i64 @${x}`
             }
-          })->List.toArray->Array.joinWith(", ")
+          })->List.toArray->Array.join(", ")
           mainInstructions := list{`%${r} = call i64 @${f}(${argList})`, ...mainInstructions.contents}
           extractFunctions(e)
         }
@@ -312,8 +312,8 @@ module LLVMLowering = {
 
     extractFunctions(anf)
 
-    let functionsStr = functions.contents->List.reverse->List.toArray->Array.joinWith("\n\n")
-    let mainBody = mainInstructions.contents->List.reverse->List.toArray->Array.joinWith("\n  ")
+    let functionsStr = functions.contents->List.reverse->List.toArray->Array.join("\n\n")
+    let mainBody = mainInstructions.contents->List.reverse->List.toArray->Array.join("\n  ")
     let mainFunc = `define i64 @main() {\nentry:\n  ${mainBody}\n}`
 
     if List.length(functions.contents) > 0 {
@@ -331,7 +331,7 @@ module LLVMLowering = {
       switch t {
       | Fun(f, params, body, cont) => {
           // Generate function definition
-          let paramList = params->List.map(p => `i64 %${p}`)->List.toArray->Array.joinWith(", ")
+          let paramList = params->List.map(p => `i64 %${p}`)->List.toArray->Array.join(", ")
           let bodyInstructions = ref(list{})
 
           let rec generateBody = (bodyTerm: ANF.t) => {
@@ -353,11 +353,11 @@ module LLVMLowering = {
                 let size = List.length(vs)
 
                 // Allocate memory for tuple
-                bodyInstructions := list{`%${r}_ptr = alloca { ${Array.make(~length=size, "i64")->Array.joinWith(", ")} }`, ...bodyInstructions.contents}
+                bodyInstructions := list{`%${r}_ptr = alloca { ${Array.make(~length=size, "i64")->Array.join(", ")} }`, ...bodyInstructions.contents}
 
                 // Store each element
-                vs->List.mapWithIndex((i, atom) => {
-                  let gepInstr = `%${r}_gep${Int.toString(i)} = getelementptr { ${Array.make(~length=size, "i64")->Array.joinWith(", ")} }, { ${Array.make(~length=size, "i64")->Array.joinWith(", ")} }* %${r}_ptr, i32 0, i32 ${Int.toString(i)}`
+                vs->List.mapWithIndex((atom, i) => {
+                  let gepInstr = `%${r}_gep${Int.toString(i)} = getelementptr { ${Array.make(~length=size, "i64")->Array.join(", ")} }, { ${Array.make(~length=size, "i64")->Array.join(", ")} }* %${r}_ptr, i32 0, i32 ${Int.toString(i)}`
                   // Convert function pointers to i64
                   let storeInstr = switch atom {
                   | AtomGlob(fname) => {
@@ -371,7 +371,7 @@ module LLVMLowering = {
                 })->ignore
 
                 // Cast to i64 for compatibility (simplified approach)
-                bodyInstructions := list{`%${r} = ptrtoint { ${Array.make(~length=size, "i64")->Array.joinWith(", ")} }* %${r}_ptr to i64`, ...bodyInstructions.contents}
+                bodyInstructions := list{`%${r} = ptrtoint { ${Array.make(~length=size, "i64")->Array.join(", ")} }* %${r}_ptr to i64`, ...bodyInstructions.contents}
                 generateBody(e)
               }
             | Proj(r, x, i, e) => {
@@ -389,7 +389,7 @@ module LLVMLowering = {
 
           generateBody(body)
 
-          let bodyStr = bodyInstructions.contents->List.reverse->List.toArray->Array.joinWith("\n  ")
+          let bodyStr = bodyInstructions.contents->List.reverse->List.toArray->Array.join("\n  ")
           let funcDef = `define i64 @${f}(${paramList}) {\nentry:\n  ${bodyStr}\n}`
 
           functions := list{funcDef, ...functions.contents}
@@ -418,7 +418,7 @@ module LLVMLowering = {
             | AtomVar(x) => `i64 %${x}`
             | AtomGlob(x) => `i64 @${x}`
             }
-          })->List.toArray->Array.joinWith(", ")
+          })->List.toArray->Array.join(", ")
           // Convert i64 to function pointer and make indirect call
           let fptrVar = `${f}_fptr`
           mainInstructions := list{`%${fptrVar} = inttoptr i64 %${f} to i64 (i64, i64)*`, ...mainInstructions.contents}
@@ -438,11 +438,11 @@ module LLVMLowering = {
           let size = List.length(vs)
 
           // Allocate memory for tuple
-          mainInstructions := list{`%${r}_ptr = alloca { ${Array.make(~length=size, "i64")->Array.joinWith(", ")} }`, ...mainInstructions.contents}
+          mainInstructions := list{`%${r}_ptr = alloca { ${Array.make(~length=size, "i64")->Array.join(", ")} }`, ...mainInstructions.contents}
 
           // Store each element
-          vs->List.mapWithIndex((i, atom) => {
-            let gepInstr = `%${r}_gep${Int.toString(i)} = getelementptr { ${Array.make(~length=size, "i64")->Array.joinWith(", ")} }, { ${Array.make(~length=size, "i64")->Array.joinWith(", ")} }* %${r}_ptr, i32 0, i32 ${Int.toString(i)}`
+          vs->List.mapWithIndex((atom, i) => {
+            let gepInstr = `%${r}_gep${Int.toString(i)} = getelementptr { ${Array.make(~length=size, "i64")->Array.join(", ")} }, { ${Array.make(~length=size, "i64")->Array.join(", ")} }* %${r}_ptr, i32 0, i32 ${Int.toString(i)}`
             // Convert function pointers to i64
             let storeInstr = switch atom {
             | AtomGlob(fname) => {
@@ -456,7 +456,7 @@ module LLVMLowering = {
           })->ignore
 
           // Cast to i64 for compatibility
-          mainInstructions := list{`%${r} = ptrtoint { ${Array.make(~length=size, "i64")->Array.joinWith(", ")} }* %${r}_ptr to i64`, ...mainInstructions.contents}
+          mainInstructions := list{`%${r} = ptrtoint { ${Array.make(~length=size, "i64")->Array.join(", ")} }* %${r}_ptr to i64`, ...mainInstructions.contents}
           extractFunctions(e)
         }
       | Proj(r, x, i, e) => {
@@ -475,8 +475,8 @@ module LLVMLowering = {
 
     extractFunctions(anf)
 
-    let functionsStr = functions.contents->List.reverse->List.toArray->Array.joinWith("\n\n")
-    let mainBody = mainInstructions.contents->List.reverse->List.toArray->Array.joinWith("\n  ")
+    let functionsStr = functions.contents->List.reverse->List.toArray->Array.join("\n\n")
+    let mainBody = mainInstructions.contents->List.reverse->List.toArray->Array.join("\n  ")
     let mainFunc = `define i64 @main() {\nentry:\n  ${mainBody}\n}`
 
     if List.length(functions.contents) > 0 {
@@ -504,7 +504,7 @@ module LLVMLowering = {
       switch t {
       | Fun(f, params, body, cont) => {
           // Generate function definition
-          let paramList = params->List.map(p => `i64 %${p}`)->List.toArray->Array.joinWith(", ")
+          let paramList = params->List.map(p => `i64 %${p}`)->List.toArray->Array.join(", ")
           let bodyInstructions = ref(list{})
 
           let rec generateBody = (bodyTerm: ANF.t) => {
@@ -543,7 +543,7 @@ module LLVMLowering = {
 
           generateBody(body)
 
-          let bodyStr = bodyInstructions.contents->List.reverse->List.toArray->Array.joinWith("\n  ")
+          let bodyStr = bodyInstructions.contents->List.reverse->List.toArray->Array.join("\n  ")
           let funcDef = `define i64 @${f}(${paramList}) {\nentry:\n  ${bodyStr}\n}`
 
           functions := list{funcDef, ...functions.contents}
@@ -598,8 +598,8 @@ module LLVMLowering = {
 
     extractFunctions(anf)
 
-    let functionsStr = functions.contents->List.reverse->List.toArray->Array.joinWith("\n\n")
-    let mainBody = mainInstructions.contents->List.reverse->List.toArray->Array.joinWith("\n  ")
+    let functionsStr = functions.contents->List.reverse->List.toArray->Array.join("\n\n")
+    let mainBody = mainInstructions.contents->List.reverse->List.toArray->Array.join("\n  ")
     let mainFunc = `define i64 @main() {\nentry:\n  ${mainBody}\n}`
 
     if List.length(functions.contents) > 0 {

@@ -791,7 +791,7 @@ function lowerPhase3(anf) {
                         tl: bodyInstructions.contents
                       };
                       Core__List.mapWithIndex(vs, (function(r$1,size){
-                          return function (i, atom) {
+                          return function (atom, i) {
                             var gepInstr = "%" + r$1 + "_gep" + i.toString() + " = getelementptr { " + Core__Array.make(size, "i64").join(", ") + " }, { " + Core__Array.make(size, "i64").join(", ") + " }* %" + r$1 + "_ptr, i32 0, i32 " + i.toString();
                             var storeInstr;
                             var exit = 0;
@@ -911,7 +911,7 @@ function lowerPhase3(anf) {
               tl: mainInstructions.contents
             };
             Core__List.mapWithIndex(vs, (function(r$1,size){
-                return function (i, atom) {
+                return function (atom, i) {
                   var gepInstr = "%" + r$1 + "_gep" + i.toString() + " = getelementptr { " + Core__Array.make(size, "i64").join(", ") + " }, { " + Core__Array.make(size, "i64").join(", ") + " }* %" + r$1 + "_ptr, i32 0, i32 " + i.toString();
                   var storeInstr;
                   var exit = 0;

@@ -19,6 +19,7 @@ type rec t =
   | App(Ast.varName, Ast.varName, list<atom>, t)
   | Bop(Ast.varName, Ast.bop, atom, atom, t)
   | If(atom, t, t)
+  // For Colosure Conversion
   | Tuple(Ast.varName, list<atom>, t)
   | Proj(Ast.varName, Ast.varName, int, t)
 
@@ -36,7 +37,7 @@ let rec printANF = (t: t): string => {
   switch t {
   | Halt(atom) => `halt ${printAtom(atom)}`
   | Fun(f, xs, e, e') => {
-      let params = xs->List.toArray->Array.joinWith(", ")
+      let params = xs->List.toArray->Array.join(", ")
       `fun ${f}(${params}) =\n  ${printANF(e)}\nin\n${printANF(e')}`
     }
   | Join(j, Some(p), e, e') => `join ${j}(${p}) =\n  ${printANF(e)}\nin\n${printANF(e')}`
@@ -44,14 +45,14 @@ let rec printANF = (t: t): string => {
   | Jump(j, Some(atom)) => `jump ${j}(${printAtom(atom)})`
   | Jump(j, None) => `jump ${j}`
   | App(r, f, vs, e) => {
-      let args = vs->List.map(printAtom)->List.toArray->Array.joinWith(", ")
+      let args = vs->List.map(printAtom)->List.toArray->Array.join(", ")
       `let ${r} = ${f}(${args}) in\n${printANF(e)}`
     }
   | Bop(r, Plus, x, y, e) => `let ${r} = ${printAtom(x)} + ${printAtom(y)} in\n${printANF(e)}`
   | Bop(r, Minus, x, y, e) => `let ${r} = ${printAtom(x)} - ${printAtom(y)} in\n${printANF(e)}`
   | If(atom, t, f) => `if ${printAtom(atom)} then\n  ${printANF(t)}\nelse\n  ${printANF(f)}`
   | Tuple(r, vs, e) => {
-      let values = vs->List.map(printAtom)->List.toArray->Array.joinWith(", ")
+      let values = vs->List.map(printAtom)->List.toArray->Array.join(", ")
       `let ${r} = (${values}) in\n${printANF(e)}`
     }
   | Proj(r, x, i, e) => `let ${r} = ${x}.${Int.toString(i)} in\n${printANF(e)}`

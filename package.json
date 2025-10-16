@@ -27,17 +27,17 @@
     "test:watch": "vitest --watch"
   },
   "dependencies": {
-    "@rescript/core": "^1.0.0",
+    "@rescript/core": "^1.5.2",
     "@types/react": "^19.2.2",
     "ink": "^6.3.1",
     "pastel": "^3.0.0",
     "react": "^19.2.0",
-    "rescript": "^11.0.1",
+    "rescript": "11.1.4",
     "rescript-nodejs": "^15.0.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@rescript/tools": "^0.5.0",
+    "@rescript/tools": "^0.6.0",
     "@types/node": "^24.7.2",
     "@vitest/ui": "^3.2.4",
     "tsx": "^4.20.6",

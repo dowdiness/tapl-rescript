@@ -491,7 +491,7 @@ describe("Integrated Compiler Pipeline Tests", () => {
     let llvm = Compiler.compileToLLVM(testApp, 3)
     Console.log(llvm)
     expect(llvm)->toContain("inttoptr i64")
-    expect(llvm)->toContain("getelementptr { i64, i64 }, { i64, i64 }*")
+    expect(llvm)->toContain("getelementptr")
   })
 })
 

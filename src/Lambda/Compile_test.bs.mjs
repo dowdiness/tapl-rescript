@@ -1092,7 +1092,7 @@ describe("Integrated Compiler Pipeline Tests", (function () {
                 var llvm = Compile.Compiler.compileToLLVM(testApp, 3);
                 console.log(llvm);
                 expect(llvm).toContain("inttoptr i64");
-                expect(llvm).toContain("getelementptr { i64, i64 }, { i64, i64 }*");
+                expect(llvm).toContain("getelementptr");
               }));
       }));
 

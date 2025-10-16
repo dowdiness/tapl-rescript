@@ -157,7 +157,7 @@ let rec typeOf = (ctx, t) => {
 
 // generate new name
 let rec pickFreshName = (ctx: context, name): (context, varName) => {
-  switch ctx->List.getBy(((varName, _binding)) => name == varName) {
+  switch ctx->List.find(((varName, _binding)) => name == varName) {
     | Some(name, _binding) => pickFreshName(ctx, name ++ "'")
     | None => (ctx->List.add((name, NameBind)), name)
   }
@@ -181,7 +181,7 @@ let rec printTY = (ty: ty) => {
         let record = fields
           ->List.map(((label, fieldTy)) => `${label}: ${printTY(fieldTy)}`)
           ->List.toArray
-          ->Array.joinWith(", ")
+          ->Array.join(", ")
         `{ ${record} }`
       }
     | TyError(message) => message
@@ -214,7 +214,7 @@ let rec printTerm = (ctx: context, t: term) => {
         let record = fields
           ->List.map(((label, fieldTerm)) => `${label}: ${printTerm(ctx, fieldTerm)}`)
           ->List.toArray
-          ->Array.joinWith(", ")
+          ->Array.join(", ")
         `{ ${record} }`
       }
     | Proj(t1, label) => {

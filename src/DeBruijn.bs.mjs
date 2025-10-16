@@ -6,7 +6,7 @@ import * as Caml_exceptions from "rescript/lib/es6/caml_exceptions.js";
 function pickFreshName(ctx, _name) {
   while(true) {
     var name = _name;
-    var match = Core__List.getBy(ctx, (function(name){
+    var match = Core__List.find(ctx, (function(name){
         return function (param) {
           return name === param[0];
         }

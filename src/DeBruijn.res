@@ -15,7 +15,7 @@ type context = list<(varName, binding)>
 
 // generate new name
 let rec pickFreshName = (ctx: context, name): (context, varName) => {
-  switch ctx->List.getBy(((varName, _binding)) => name == varName) {
+  switch ctx->List.find(((varName, _binding)) => name == varName) {
     | Some(name, _binding) => pickFreshName(ctx, name ++ "'")
     | None => (ctx->List.add((name, NameBind)), name)
   }

@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@rescript/core':
-        specifier: ^1.0.0
-        version: 1.0.0(rescript@11.0.1)
+        specifier: ^1.5.2
+        version: 1.5.2(rescript@11.1.4)
       '@types/react':
         specifier: ^19.2.2
         version: 19.2.2
@@ -24,8 +24,8 @@ importers:
         specifier: ^19.2.0
         version: 19.2.0
       rescript:
-        specifier: ^11.0.1
-        version: 11.0.1
+        specifier: 11.1.4
+        version: 11.1.4
       rescript-nodejs:
         specifier: ^15.0.0
         version: 15.0.0
@@ -34,8 +34,8 @@ importers:
         version: 3.25.76
     devDependencies:
       '@rescript/tools':
-        specifier: ^0.5.0
-        version: 0.5.0
+        specifier: ^0.6.0
+        version: 0.6.6
       '@types/node':
         specifier: ^24.7.2
         version: 24.7.2
@@ -234,13 +234,13 @@ packages:
   '@polka/url@1.0.0-next.29':
     resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
 
-  '@rescript/core@1.0.0':
-    resolution: {integrity: sha512-F5HURYYx8Kp6h1KBiri2nFwGKR16o9/XTCNl2TEWfCwqR+MTzf/lpuPuB6ajnaYytsU0kTUBIFI0DOoLgkDxSg==}
+  '@rescript/core@1.5.2':
+    resolution: {integrity: sha512-VWRFHrQu8hWnd9Y9LYZ8kig2urybhZlDVGy5u50bqf2WCRAeysBIfxK8eN4VlpQT38igMo0/uLX1KSpwCVMYGw==}
     peerDependencies:
-      rescript: '>=11.0.0 || ^11.1.0-rc.2'
+      rescript: ^11.1.0-rc.7
 
-  '@rescript/tools@0.5.0':
-    resolution: {integrity: sha512-gqKZhpXdFMRb0i+aCNKNtbHANFYC/nM7LLLRkkYQLgeJ2teVCV9otO09KIA7CvSZevN6x68r/dkeWi3klLdydA==}
+  '@rescript/tools@0.6.6':
+    resolution: {integrity: sha512-3Rh3lOlCXfQ01ZDPxkS+KuCPJWbTbeLlFMiaGap/Api2vqc2F3Y/oP2sQBW7gDO+w1Zpm08TGI1S1owN7kmpqg==}
     hasBin: true
 
   '@rollup/rollup-android-arm-eabi@4.52.4':
@@ -701,8 +701,8 @@ packages:
   rescript-nodejs@15.0.0:
     resolution: {integrity: sha512-VvvM8/lI90Dfu0x4886NyINbUcBBx8F6hmftH9UaMjUgYIPfsdVopG3d30OzcbroiOKySgo4wwVNEmtYDZs+nw==}
 
-  rescript@11.0.1:
-    resolution: {integrity: sha512-7T4PRp/d0+CBNnY6PYKffFqo9tGZlvnZpboF/n+8SKS+JZ6VvXJO7W538VPZXf3EYx1COGAWWvkF9e/HgSAqHg==}
+  rescript@11.1.4:
+    resolution: {integrity: sha512-0bGU0bocihjSC6MsE3TMjHjY0EUpchyrREquLS8VsZ3ohSMD+VHUEwimEfB3kpBI1vYkw3UFZ3WD8R28guz/Vw==}
     engines: {node: '>=10'}
     hasBin: true
 
@@ -1046,13 +1046,13 @@ snapshots:
 
   '@polka/url@1.0.0-next.29': {}
 
-  '@rescript/core@1.0.0(rescript@11.0.1)':
+  '@rescript/core@1.5.2(rescript@11.1.4)':
     dependencies:
-      rescript: 11.0.1
+      rescript: 11.1.4
 
-  '@rescript/tools@0.5.0':
+  '@rescript/tools@0.6.6':
     dependencies:
-      rescript: 11.0.1
+      rescript: 11.1.4
 
   '@rollup/rollup-android-arm-eabi@4.52.4':
     optional: true
@@ -1461,7 +1461,7 @@ snapshots:
 
   rescript-nodejs@15.0.0: {}
 
-  rescript@11.0.1: {}
+  rescript@11.1.4: {}
 
   resolve-pkg-maps@1.0.0: {}
 

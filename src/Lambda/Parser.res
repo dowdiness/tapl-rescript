@@ -35,7 +35,7 @@ let printToken = (token: token): string => {
 }
 
 let printTokens = (tokens: list<token>): string => {
-  let tokens = tokens->List.map(printToken)->List.toArray->Array.joinWith(", ")
+  let tokens = tokens->List.map(printToken)->List.toArray->Array.join(", ")
   `[${tokens}]`
 }
 
