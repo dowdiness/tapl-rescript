@@ -7,8 +7,6 @@ import * as Caml_obj from "rescript/lib/es6/caml_obj.js";
 import * as Core__List from "@rescript/core/src/Core__List.bs.mjs";
 import * as Caml_exceptions from "rescript/lib/es6/caml_exceptions.js";
 
-var ParseError = /* @__PURE__ */Caml_exceptions.create("Parser.ParseError");
-
 function printToken(token) {
   if (typeof token === "object") {
     if (token.TAG === "Identifier") {
@@ -46,6 +44,10 @@ function printTokens(tokens) {
   var tokens$1 = Core__List.toArray(Core__List.map(tokens, printToken)).join(", ");
   return "[" + tokens$1 + "]";
 }
+
+var TokenizationError = /* @__PURE__ */Caml_exceptions.create("Parser.TokenizationError");
+
+var ParseError = /* @__PURE__ */Caml_exceptions.create("Parser.ParseError");
 
 function isBigAlphabet(code) {
   if (code >= 65) {
@@ -179,8 +181,8 @@ function tokenizeHelper(input, _pos, _acc) {
           continue ;
         }
         throw {
-              RE_EXN_ID: ParseError,
-              _1: "Unexpected character: " + c,
+              RE_EXN_ID: TokenizationError,
+              _1: c,
               Error: new Error()
             };
     }
@@ -281,7 +283,8 @@ function expect(parser, expected) {
   if (Caml_obj.notequal(current, expected)) {
     throw {
           RE_EXN_ID: ParseError,
-          _1: "Expected " + printToken(expected) + ", but get " + printToken(current),
+          _1: "Expected ${printToken(expected)},",
+          _2: current,
           Error: new Error()
         };
   }
@@ -293,38 +296,6 @@ function parse(input) {
   var parser = {
     tokens: tokens,
     position: 0
-  };
-  var parseApplication = function (parser) {
-    var match = parseAtom(parser);
-    var _parser = match[0];
-    var _acc = match[1];
-    while(true) {
-      var acc = _acc;
-      var parser$1 = _parser;
-      var match$1 = peek(parser$1);
-      if (typeof match$1 !== "object") {
-        switch (match$1) {
-          case "Lambda" :
-          case "LeftParen" :
-              break;
-          default:
-            return [
-                    parser$1,
-                    acc
-                  ];
-        }
-      } else {
-        match$1.TAG === "Identifier";
-      }
-      var match$2 = parseAtom(parser$1);
-      _acc = {
-        TAG: "App",
-        _0: acc,
-        _1: match$2[1]
-      };
-      _parser = match$2[0];
-      continue ;
-    };
   };
   var parseBinaryOp = function (parser) {
     var match = parseApplication(parser);
@@ -396,7 +367,15 @@ function parse(input) {
       case "Lambda" :
           var parser$1 = advance(parser);
           var param = peek(parser$1);
-          if (typeof param === "object" && param.TAG === "Identifier") {
+          if (typeof param !== "object") {
+            throw {
+                  RE_EXN_ID: ParseError,
+                  _1: "Expected parameter after λ",
+                  _2: param,
+                  Error: new Error()
+                };
+          }
+          if (param.TAG === "Identifier") {
             var parser$2 = advance(parser$1);
             var parser$3 = expect(parser$2, "Dot");
             var match = parseBinaryOp(parser$3);
@@ -411,7 +390,8 @@ function parse(input) {
           }
           throw {
                 RE_EXN_ID: ParseError,
-                _1: "Expected parameter after λ,  but get " + printToken(param) + " instead",
+                _1: "Expected parameter after λ",
+                _2: param,
                 Error: new Error()
               };
       case "LeftParen" :
@@ -441,21 +421,64 @@ function parse(input) {
       default:
         throw {
               RE_EXN_ID: ParseError,
-              _1: "Unexpected token: " + printToken(n),
+              _1: "Unexpected token:",
+              _2: n,
               Error: new Error()
             };
     }
   };
+  var parseApplication = function (parser) {
+    var match = parseAtom(parser);
+    var _parser = match[0];
+    var _acc = match[1];
+    while(true) {
+      var acc = _acc;
+      var parser$1 = _parser;
+      var match$1 = peek(parser$1);
+      if (typeof match$1 !== "object") {
+        switch (match$1) {
+          case "Lambda" :
+          case "LeftParen" :
+              break;
+          default:
+            return [
+                    parser$1,
+                    acc
+                  ];
+        }
+      } else {
+        match$1.TAG === "Identifier";
+      }
+      var match$2 = parseAtom(parser$1);
+      _acc = {
+        TAG: "App",
+        _0: acc,
+        _1: match$2[1]
+      };
+      _parser = match$2[0];
+      continue ;
+    };
+  };
   var match = parseBinaryOp(parser);
   var token = peek(match[0]);
-  if (typeof token !== "object" && token === "EOF") {
-    return match[1];
+  if (typeof token !== "object") {
+    if (token === "EOF") {
+      return match[1];
+    }
+    throw {
+          RE_EXN_ID: ParseError,
+          _1: "Unexpected tokens after expression",
+          _2: token,
+          Error: new Error()
+        };
+  } else {
+    throw {
+          RE_EXN_ID: ParseError,
+          _1: "Unexpected tokens after expression",
+          _2: token,
+          Error: new Error()
+        };
   }
-  throw {
-        RE_EXN_ID: ParseError,
-        _1: "Unexpected tokens after expression: " + printToken(token),
-        Error: new Error()
-      };
 }
 
 function parseAndCompile(input) {
@@ -502,9 +525,10 @@ function testParser() {
 }
 
 export {
-  ParseError ,
   printToken ,
   printTokens ,
+  TokenizationError ,
+  ParseError ,
   isBigAlphabet ,
   isSmallAlphabet ,
   isAlphabet ,

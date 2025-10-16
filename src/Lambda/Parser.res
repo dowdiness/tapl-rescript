@@ -1,8 +1,6 @@
 // Simple Parser for Lambda Calculus expressions
 // Supports: λx.e, (e1 e2), e1 + e2, e1 - e2, if e1 then e2 else e3, integers, variables
 
-exception ParseError(string)
-
 // Token types
 type token =
   | Lambda                    // λ or \
@@ -40,6 +38,9 @@ let printTokens = (tokens: list<token>): string => {
   let tokens = tokens->List.map(printToken)->List.toArray->Array.joinWith(", ")
   `[${tokens}]`
 }
+
+exception TokenizationError(string)
+exception ParseError(string, token)
 
 // 65-90(A-Z)
 let isBigAlphabet = (code: int) => {
@@ -92,7 +93,7 @@ let rec tokenizeHelper = (input: string, pos: int, acc: list<token>): list<token
           let (newPos, number) = readNumber(input, pos, 0)
           tokenizeHelper(input, newPos, list{Integer(number), ...acc})
         } else {
-          raise(ParseError(`Unexpected character: ${c}`))
+          raise(TokenizationError(c))
         }
       }
     }
@@ -158,7 +159,7 @@ let advance = (parser: parser): parser => {
 let expect = (parser: parser, expected: token): parser => {
   let current = peek(parser)
   if current != expected {
-    raise(ParseError(`Expected ${printToken(expected)}, but get ${printToken(current)}`))
+    raise(ParseError("Expected ${printToken(expected)},", current))
   }
   advance(parser)
 }
@@ -227,7 +228,7 @@ let parse = (input: string): Ast.t => {
             let (parser, body) = parseExpression(parser)
             (parser, Ast.Lam(param, body))
           }
-        | token => raise(ParseError(`Expected parameter after λ,  but get ${printToken(token)} instead`))
+        | token => raise(ParseError("Expected parameter after λ", token))
         }
       }
     | If => {
@@ -245,7 +246,7 @@ let parse = (input: string): Ast.t => {
         let parser = expect(parser, RightParen)
         (parser, expr)
       }
-    | token => raise(ParseError(`Unexpected token: ${printToken(token)}`))
+    | token => raise(ParseError("Unexpected token:", token))
     }
   }
 
@@ -254,7 +255,7 @@ let parse = (input: string): Ast.t => {
   // Check that we consumed all tokens (except EOF)
   switch peek(finalParser) {
   | EOF => expr
-  | token => raise(ParseError(`Unexpected tokens after expression: ${printToken(token)}`))
+  | token => raise(ParseError("Unexpected tokens after expression", token))
   }
 }
 

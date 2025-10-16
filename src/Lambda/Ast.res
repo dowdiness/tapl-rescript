@@ -18,7 +18,7 @@ type rec t =
   | Bop(bop, t, t)
   | If(t, t, t)
 
-exception NoRuleApplies(t)
+exception NoVarInEnv(t)
 
 let c = ref(-1)
 let fresh = str => {
@@ -33,7 +33,7 @@ let rename = {
     | Var(name) => {
         switch Belt.Map.String.get(env, name) {
         | Some(name') => Var(name')
-        | None => raise(NoRuleApplies(t))
+        | None => raise(NoVarInEnv(t))
         }
       }
     | Lam(name, t1) => {

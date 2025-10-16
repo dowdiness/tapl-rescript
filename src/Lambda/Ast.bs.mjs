@@ -3,7 +3,7 @@
 import * as Belt_MapString from "rescript/lib/es6/belt_MapString.js";
 import * as Caml_exceptions from "rescript/lib/es6/caml_exceptions.js";
 
-var NoRuleApplies = /* @__PURE__ */Caml_exceptions.create("Ast.NoRuleApplies");
+var NoVarInEnv = /* @__PURE__ */Caml_exceptions.create("Ast.NoVarInEnv");
 
 var c = {
   contents: -1
@@ -31,7 +31,7 @@ function go(env) {
                   };
           }
           throw {
-                RE_EXN_ID: NoRuleApplies,
+                RE_EXN_ID: NoVarInEnv,
                 _1: t,
                 Error: new Error()
               };
@@ -94,7 +94,7 @@ function printLam(t) {
 }
 
 export {
-  NoRuleApplies ,
+  NoVarInEnv ,
   c ,
   fresh ,
   rename ,
