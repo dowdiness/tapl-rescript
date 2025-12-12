@@ -26,6 +26,7 @@
   "imports": {
     "#parser": "./src/Lambda/Parser.mjs",
     "#compiler": "./src/Lambda/Compile.mjs",
+    "#hoisting": "./src/Lambda/Hoisting.mjs",
     "#ast": "./src/Lambda/Ast.mjs",
     "#anf": "./src/Lambda/ANF.mjs",
     "#closure-conversion": "./src/Lambda/ClosureConversion.mjs"
