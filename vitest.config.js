@@ -5,7 +5,7 @@ export default defineConfig({
     // ReScriptが生成する.bs.mjsファイルをテスト対象に含める
     include: [
       '**/*.test.{js,mjs,ts}',
-      '**/*_test.bs.{js,mjs,ts}',
+      '**/*_test.{js,mjs,ts}',
       '**/*.test.bs.{js,mjs,ts}'
     ],
     globals: true,

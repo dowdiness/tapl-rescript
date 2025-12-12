@@ -4,6 +4,7 @@ import * as ANF from "./ANF.mjs";
 import * as Ast from "./Ast.mjs";
 import * as Parser from "./Parser.mjs";
 import * as Compile from "./Compile.mjs";
+import * as Hoisting from "./Hoisting.mjs";
 import * as Belt_SetString from "rescript/lib/es6/belt_SetString.js";
 import * as ClosureConversion from "./ClosureConversion.mjs";
 
@@ -428,7 +429,7 @@ describe("Hoisting", (function () {
                 var renamed = Ast.rename(testLambda);
                 var anf = ANF.convert(renamed);
                 var closure = ClosureConversion.convert(anf);
-                var hoisted = Compile.Hoisting.hoist(closure);
+                var hoisted = Hoisting.hoist(closure);
                 var printed = ANF.printANF(hoisted);
                 var funIndex = printed.indexOf("fun");
                 var tupleIndex = printed.indexOf("(");
@@ -438,7 +439,7 @@ describe("Hoisting", (function () {
                 var renamed = Ast.rename(testApp);
                 var anf = ANF.convert(renamed);
                 var closure = ClosureConversion.convert(anf);
-                var hoisted = Compile.Hoisting.hoist(closure);
+                var hoisted = Hoisting.hoist(closure);
                 var printed = ANF.printANF(hoisted);
                 expect(printed).toContain("fun");
                 expect(printed).toContain("let");
@@ -448,7 +449,7 @@ describe("Hoisting", (function () {
                 var renamed = Ast.rename(testBop);
                 var anf = ANF.convert(renamed);
                 var closure = ClosureConversion.convert(anf);
-                var hoisted = Compile.Hoisting.hoist(closure);
+                var hoisted = Hoisting.hoist(closure);
                 var printed = ANF.printANF(hoisted);
                 expect(printed).toContain("3 + 4");
                 expect(printed).toContain("halt");
@@ -457,7 +458,7 @@ describe("Hoisting", (function () {
                 var renamed = Ast.rename(testComplexFreeVars);
                 var anf = ANF.convert(renamed);
                 var closure = ClosureConversion.convert(anf);
-                var hoisted = Compile.Hoisting.hoist(closure);
+                var hoisted = Hoisting.hoist(closure);
                 var printed = ANF.printANF(hoisted);
                 var lines = printed.split("\n");
                 var funLines = lines.filter(function (line) {
