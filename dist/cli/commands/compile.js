@@ -11,6 +11,8 @@ import * as Ast from "#ast";
 import * as ANF from "#anf";
 // @ts-ignore - ReScript compiled modules
 import * as ClosureConversion from "#closure-conversion";
+// @ts-ignore - ReScript compiled modules
+import * as Hoisting from "#hoisting";
 export const options = zod.object({
     phase: zod
         .number()
@@ -37,7 +39,7 @@ export default function Compile({ options, args }) {
             const renamed = Ast.rename(ast);
             const anf = ANF.convert(renamed);
             const closure = ClosureConversion.convert(anf);
-            const hoisted = Compiler.Hoisting.hoist(closure);
+            const hoisted = Hoisting.hoist(closure);
             return (React.createElement(Box, { flexDirection: "column" },
                 React.createElement(Text, { color: "green" }, "ANF:"),
                 React.createElement(Text, null, ANF.printANF(hoisted))));
