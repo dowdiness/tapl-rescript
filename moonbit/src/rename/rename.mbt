@@ -10,8 +10,8 @@ pub fn fresh(prefix : String) -> String {
 }
 
 ///|
-pub fn rename(term : Term) -> Result[Term, String] {
-  fn go(env : Map[String, String], t : Term) -> Result[Term, String] {
+pub fn rename(term : @parser.Term) -> Result[@parser.Term, String] {
+  fn go(env : Map[String, String], t : @parser.Term) -> Result[@parser.Term, String] {
     match t {
       Int(i) => Ok(Int(i))
       Var(name) =>

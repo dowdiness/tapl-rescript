@@ -215,30 +215,6 @@ test "parse mixed operators and applications" {
   inspect(printed.contains("y"), content="true")
 }
 
-// ===== Integration Tests =====
-
-test "parse and rename identity function" {
-  let expr = parse("λx.x")
-  match rename(expr) {
-    Ok(term) => {
-      let printed = print_term(term)
-      inspect(printed.contains("λ"), content="true")
-    }
-    Err(_) => inspect(false, content="true")
-  }
-}
-
-test "parse and rename nested lambda" {
-  let expr = parse("λf.λx.f x")
-  match rename(expr) {
-    Ok(term) => {
-      let printed = print_term(term)
-      inspect(printed.contains("λ"), content="true")
-    }
-    Err(_) => inspect(false, content="true")
-  }
-}
-
 test "parse complex expression with all features" {
   let expr = parse("(λf.λx.if f x then x + 1 else x - 1)")
   let printed = print_term(expr)
