@@ -1,0 +1,8 @@
+{
+  "name": "tapl",
+  "version": "0.1.0",
+  "source": {
+    "backend": ["js", "wasm"],
+    "wasm-opt": ["O3"]
+  }
+}
