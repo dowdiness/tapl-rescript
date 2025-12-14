@@ -5,7 +5,7 @@ test "parse and rename identity function" {
   match rename(expr) {
     Ok(term) => {
       let printed = @parser.print_term(term)
-      inspect(printed.contains("λ"), content="true")
+      inspect(printed.contains("x0"), content="true")
     }
     Err(_) => inspect(false, content="true")
   }
@@ -16,7 +16,8 @@ test "parse and rename nested lambda" {
   match rename(expr) {
     Ok(term) => {
       let printed = @parser.print_term(term)
-      inspect(printed.contains("λ"), content="true")
+      inspect(printed.contains("f0"), content="true")
+      inspect(printed.contains("x1"), content="true")
     }
     Err(_) => inspect(false, content="true")
   }
