@@ -1,6 +1,8 @@
 {
   "name": "lambda",
   "version": "0.1.0",
-  "deps": {},
+  "deps": {
+    "moonbitlang/x": "0.4.37"
+  },
   "source": "src"
 }

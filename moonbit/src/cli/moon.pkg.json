@@ -1,0 +1,9 @@
+{
+  "is-main": true,
+  "main": "cli.mbt",
+  "import": [
+    "moonbitlang/x/sys",
+    "lambda/parser",
+    "lambda/rename"
+  ]
+}
