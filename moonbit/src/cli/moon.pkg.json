@@ -4,6 +4,7 @@
   "import": [
     "moonbitlang/x/sys",
     "lambda/parser",
-    "lambda/rename"
+    "lambda/rename",
+    "lambda/lowering"
   ]
 }
