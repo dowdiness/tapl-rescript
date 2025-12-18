@@ -5,6 +5,7 @@
     "moonbitlang/x/sys",
     "lambda/parser",
     "lambda/rename",
-    "lambda/lowering"
+    "lambda/lowering",
+    "lambda/compile"
   ]
 }
