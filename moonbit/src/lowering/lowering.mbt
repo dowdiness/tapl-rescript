@@ -1,8 +1,10 @@
 // Helper function to convert atom to string representation
 
 // Basic arithmetic operations and primitives
-pub fn lowering(expr: @parser.Term) -> String {
-  fn go(expr: @parser.Term) -> String {
+
+pub suberror LoweringError String
+pub fn lowering(expr: @parser.Term) -> String raise {
+  fn go(expr: @parser.Term) -> String raise {
     match expr {
       Bop(Plus, t1, t2) => {
         let t1 = go(t1)
@@ -14,7 +16,7 @@ pub fn lowering(expr: @parser.Term) -> String {
       // Var(x) => "    mov  %rax, " + x
       Int(i) => i.to_string()
       // If(_) => ...
-      _ => ...
+      e => raise LoweringError(@parser.print_term(e))
     }
   }
 
