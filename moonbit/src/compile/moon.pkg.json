@@ -1,0 +1,6 @@
+{
+  "import": [
+    "lambda/parser",
+    "lambda/rename"
+  ]
+}
