@@ -55,40 +55,58 @@ test "print_atom" {
   inspect(print_atom(AtomGlob("sys")), content="@sys")
 }
 
+struct Indent {
+  level: Int
+  space: String
+} derive(Eq)
 
+pub impl Default for Indent with default() {
+  Indent::{ level: 0, space: "  " }
+}
+
+impl Show for Indent with output(self, logger) {
+  logger.write_string(self.space.repeat(self.level))
+}
+
+fn Indent::incr(self: Self) -> Self {
+  { ..self, level: self.level + 1 }
+}
+
+fn Indent::decr(self: Self) -> Self {
+  { ..self, level: self.level -1 }
+}
 
 ///| Pretty print ANF
 pub fn print_anf(anf : ANF) -> String {
-  fn go(a : ANF) -> String {
+  fn go(a : ANF, indent: Indent) -> String {
+    let decredIndent = indent.decr()
+    let incredIndent = indent.incr()
     match a {
-      Halt(atom) => "halt " + print_atom(atom)
+      Halt(atom) => "halt \{print_atom(atom)}"
       Fun(f, xs, e, k) => {
         let params = xs.to_array().join(", ")
-        "fun \{f}(\{params}) =\n  \{go(e)}\nin\n\{go(k)}"
+        "fun \{f}(\{params}) =\n\{incredIndent}\{go(e, incredIndent)}\n\{indent}in\n\{indent}\{go(k, indent)}"
       }
-      Join(j, Some(p), e, k) => "join \{j} (\{p}) =\n  \{go(e)}\nin\n\{go(k)}"
-      Join(j, None, e, k) => "join \{j} =\n  \{go(e)}\nin\n\{go(k)}"
-      Jump(j, Some(atom)) => "jump \{j} (\{print_atom(atom)})"
+      Join(j, Some(p), e, k) => "join \{j} (\{p}) =\n\{incredIndent}\{go(e, incredIndent)}\n\{indent}in\n\{indent}\{go(k, incredIndent)}"
+      Join(j, None, e, k) => "join \{j} =\n\{incredIndent}\{go(e, incredIndent)}\n\{indent}in\n\{indent}\{go(k, incredIndent)}"
+      Jump(j, Some(atom)) => "jump \{j}(\{print_atom(atom)})"
       Jump(j, None) => "jump \{j}"
       App(r, f, vs, e) => {
         let args = vs.map(print_atom).to_array().join(", ")
-        "let \{r} = \{f} (\{args}) in\n \{go(e)}"
+        "let \{r} = \{f}(\{args}) in\n\{indent}\{go(e, indent)}"
       }
-      Bop(r, Plus, x, y, e) =>
-        "let \{r} = \{print_atom(x)} + \{print_atom(y)} in\n\{go(e)}"
-      Bop(r, Minus, x, y, e) =>
-        "let \{r} = \{print_atom(x)} - \{print_atom(y)} in\n\{go(e)}"
-      If(atom, t, f) =>
-        "if \{print_atom(atom)} then\n  \{go(t)} \nelse\n  \{go(f)}"
+      Bop(r, Plus, x, y, e) => "let \{r} = \{print_atom(x)} + \{print_atom(y)} in\n\{indent}\{go(e, indent)}"
+      Bop(r, Minus, x, y, e) => "let \{r} = \{print_atom(x)} - \{print_atom(y)} in\n\{indent}\{go(e, indent)}"
+      If(atom, t, f) => "if \{print_atom(atom)} then\n\{indent}\{go(t, indent)} \n\{decredIndent}else\n\{indent}\{go(f, indent)}"
       Tuple(r, vs, e) => {
         let values = vs.map(print_atom).to_array().join(", ")
-        "let \{r} = (\{values}) in\n\{go(e)}"
+        "let \{r} = (\{values}) in\n\{indent}\{go(e, indent)}"
       }
-      Proj(r, x, i, e) => "let \{r} = \{x}.\{i.to_string()} in\n\{go(e)}"
+      Proj(r, x, i, e) => "let \{r} = \{x}.\{i.to_string()} in\n\{indent}\{go(e, indent)}"
     }
   }
 
-  go(anf)
+  go(anf, Indent::default())
 }
 
 ///|
@@ -99,7 +117,7 @@ test "print_anf/basic_constructs" {
   // Test Jump with and without arguments
   inspect(
     print_anf(Jump("label1", Some(AtomVar("x")))),
-    content="jump label1 (x)",
+    content="jump label1(x)",
   )
   inspect(print_anf(Jump("label2", None)), content="jump label2")
 }
@@ -126,7 +144,7 @@ test "print_anf/operations" {
 
   // Test If expression
   let if_expr = If(AtomVar("cond"), Halt(AtomInt(1)), Halt(AtomInt(2)))
-  inspect(print_anf(if_expr), content="if cond then\n  halt 1 \nelse\n  halt 2")
+  inspect(print_anf(if_expr), content="if cond then\nhalt 1 \nelse\nhalt 2")
 }
 
 ///|
@@ -149,7 +167,7 @@ test "print_anf/complex_constructs" {
   )
   inspect(
     print_anf(app_expr),
-    content="let result = func (1, y) in\n halt result",
+    content="let result = func(1, y) in\nhalt result",
   )
 
   // Test Join with parameter and without parameter
@@ -161,7 +179,7 @@ test "print_anf/complex_constructs" {
   )
   inspect(
     print_anf(join_with_param),
-    content="join j1 (p) =\n  halt p\nin\njump j1 (42)",
+    content="join j1 (p) =\n  halt p\nin\njump j1(42)",
   )
   let join_without_param = Join("j2", None, Halt(AtomInt(0)), Jump("j2", None))
   inspect(

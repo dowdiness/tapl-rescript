@@ -6,18 +6,20 @@ fn main {
   }
   let code = args.get(1).unwrap_or("(λx.λy.x y) 1 2")
   try {
+    println("Code:\n\{code}\n")
     let term = @parser.parse(code)
+    println("Parsed:\n\{@parser.print_term(term)}\n")
     let renamed = @rename.rename(term)
-    let assembly = @lowering.lowering(renamed)
-    println("Code: " + code)
-    println("Parsed: " + term.to_string())
-    println("Renamed: " + renamed.to_string())
-    println(assembly)
+    println("Renamed:\n\{@parser.print_term(renamed)}\n")
+    let anf = @compile.convert(renamed)
+    println("ANF:\n" + anf.to_string() + "\n\n" + @compile.print_anf(anf) + "\n")
+    let assembly = @lowering.lowering(anf)
+    println("Assembly:\n" + assembly)
   } catch {
     @parser.TokenizationError(s) => println(s)
-    @parser.ParseError(s) => println(s)
-    @rename.RenameError(s) => println(s)
-    @lowering.LoweringError(s) => println(s)
+    @parser.ParseError(s) => println("ParseError: \{s}")
+    @rename.RenameError(s) => println("RenameError: \{s}")
+    @lowering.LoweringError(s) => println("LoweringError: \{s}")
     e => println(e)
   }
 }
