@@ -1,148 +1,95 @@
-// CLI引数パーサー (pico-argsベース)
+// CLI arguments parser
 
 ///|
-pub struct Opt {
+pub struct Arg {
   name : String
   flag : Bool?
   value : String?
   short : String?
 } derive(Show, Eq)
 
-pub fn Opt::new(name: String, flag?: Bool, value?: String, short?: String) -> Opt {
-  Opt::{
-    name,
-    flag,
-    value,
-    short
-  }
+///|
+pub fn Arg::new(
+  name : String,
+  flag? : Bool,
+  value? : String,
+  short? : String,
+) -> Arg {
+  Arg::{ name, flag, value, short }
 }
 
-struct Arg {
-  name: String
-  value: String?
+///|
+struct MatchedArg {
+  name : String
+  value : String?
 } derive(Show)
 
+///|
 struct Cli {
-  name: String
-  path: @path.Path
-  options: Array[Opt]
-  args: Array[Arg]
+  name : String
+  path : @path.Path
+  options : Array[Arg]
+  matched_args : Array[MatchedArg]
 }
 
+///|
 impl Show for Cli with output(self, logger) {
   logger
   ..write_string("Name: \{self.name}")
   ..write_string("\nPath: \{self.path.to_string()}")
-  ..write_string("\nOptions: ")
-  ..write_object(self.options)
   ..write_string("\nArgs: ")
-  ..write_iter(self.args.iter())
+  ..write_object(self.options)
+  ..write_string("\nMatched: ")
+  ..write_iter(self.matched_args.iter())
 }
 
-pub fn Cli::new(name: String, options: Array[Opt]) -> Cli raise {
+///|
+pub fn Cli::new(name : String, options : Array[Arg]) -> Cli raise {
   let all_args = @sys.get_cli_args()
   let path = @path.Path(all_args[0])
   let args = all_args[1:].to_array()
-  if args.length() > options.length() { fail("Too many arguments: \{args}") }
-
-  fn handleOption(option: StringView, pred: (String) -> (Opt) -> Bool) -> Arg raise {
+  if args.length() > options.length() {
+    fail("Too many arguments: \{args}")
+  }
+  fn handleOption(
+    option : StringView,
+    pred : (String) -> (Arg) -> Bool,
+  ) -> MatchedArg raise {
     let option = option.to_string()
-    let parts = split_once(option, "=")
+    let parts = split_at(option, '=')
     match parts {
       Some((key, value)) => {
-        let selected = options
-          .iter()
-          .find_first(pred(key))
+        let selected = options.iter().find_first(pred(key))
         match selected {
-          Some(selected) => Arg::{ name: selected.name, value: Some(value) }
+          Some(selected) => MatchedArg::{ name: selected.name, value: Some(value) }
           None => fail("Invalid option: \{option}")
         }
       }
       None => fail("Invalid option: \{option}")
     }
   }
-  let args = args.mapi(fn(i, arg) {
+
+  let matched_args = args.mapi(fn(i, arg) {
     match arg {
       // long option
-      [.."--", ..option] => {
-        handleOption(
-          option,
-          fn(name){
-            fn(opt){ opt.name == name }
-          }
-        )
-      }
+      [.. "--", .. option] =>
+        handleOption(option, fn(name) { fn(opt) { opt.name == name } })
       // short option
-      [.."-", ..option] => {
-        handleOption(
-          option,
-          fn(short){
-            fn(opt){ opt.short.unwrap_or_default() == short }
-          }
-        )
-      }
-      value => Arg::{ name: options[i].name, value: Some(value) }
+      [.. "-", .. option] =>
+        handleOption(option, fn(short) {
+          fn(opt) { opt.short.unwrap_or_default() == short }
+        })
+      value => MatchedArg::{ name: options[i].name, value: Some(value) }
     }
   })
-
-  Cli::{
-    name,
-    path,
-    options,
-    args
-  }
+  Cli::{ name, path, options, matched_args }
 }
 
-///|
-pub struct Arguments {
-  path : String
-  args : Array[Opt]
-}
+// Helper functions
 
-impl Default for Arguments with default() {
-  let all_args = @sys.get_cli_args()
-  let path = all_args[0]
-  let args = all_args[1:].to_array()
-  let args = args.map(fn(arg) {
-    match arg {
-      [.."--", ..option] | [.."-", ..option] => {
-        let option = option.to_string()
-        let parts = split_once(option, "=")
-        match parts {
-          Some((key, value)) => Opt::new(key, value=value, flag=true)
-          None => Opt::new(option, flag=true)
-        }
-      }
-      _ => Opt::new(arg)
-    }
-  })
-  Arguments::{ path, args }
-}
-
-pub fn Arguments::new() -> Arguments {
-  Arguments::default()
-}
-
-/// 指定されたフラグが存在するかチェック
-// pub fn Arguments::contains_flag(self : Arguments, flag : String) -> Bool {
-//   for i = 0; i < self.args.length(); i = i + 1 {
-//     match self.args[i] {
-//       Flag(name) => {
-//         if name == flag {
-//           return true
-//         }
-//       }
-//       _ => ()
-//     }
-//   }
-//   false
-// }
-
-// ヘルパー関数
-
-/// 文字列を指定された文字で最初の1回だけ分割
-fn split_once(s : String, delimiter : String) -> (String, String)? {
-  match s.find(delimiter) {
+///| Split a string into two elements tuple at the first occurrence of a delimiter.
+fn split_at(s : String, delimiter : Char) -> (String, String)? {
+  match s.find(delimiter.to_string()) {
     Some(i) => {
       let before = try? s[:i]
       let after = try? s[i + 1:]
@@ -153,4 +100,41 @@ fn split_once(s : String, delimiter : String) -> (String, String)? {
     }
     None => return None
   }
+}
+
+// ===== split_at Helper Tests =====
+
+test "split_at with valid delimiter" {
+  let result = split_at("key=value", '=')
+  inspect(result, content="Some((\"key\", \"value\"))")
+}
+
+test "split_at with multiple delimiters - splits at first" {
+  let result = split_at("key=value=extra", '=')
+  inspect(result, content="Some((\"key\", \"value=extra\"))")
+}
+
+test "split_at with no delimiter" {
+  let result = split_at("nodelimiter", '=')
+  inspect(result, content="None")
+}
+
+test "split_at with empty string" {
+  let result = split_at("", '=')
+  inspect(result, content="None")
+}
+
+test "split_at with delimiter at start" {
+  let result = split_at("=value", '=')
+  inspect(result, content="Some((\"\", \"value\"))")
+}
+
+test "split_at with delimiter at end" {
+  let result = split_at("key=", '=')
+  inspect(result, content="Some((\"key\", \"\"))")
+}
+
+test "split_at with space delimiter" {
+  let result = split_at("hello world", ' ')
+  inspect(result, content="Some((\"hello\", \"world\"))")
 }
