@@ -3,6 +3,8 @@
   "main": "cli.mbt",
   "import": [
     "moonbitlang/x/sys",
+    "moonbitlang/x/path",
+    "moonbitlang/x/fs",
     "lambda/parser",
     "lambda/rename",
     "lambda/lowering",
