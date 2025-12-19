@@ -219,7 +219,7 @@ fn[A, B] letStar(f : (A) -> B raise?, k : A) -> B raise? {
 ///| ANF conversion algorithm using continuation-passing style (CPS)
 pub fn convert(term : @parser.Term) -> ANF raise {
   // Main conversion function with continuation
-  fn go(e : @parser.Term, k : (Atom) -> ANF raise) -> ANF raise {
+  letrec go = fn(e : @parser.Term, k : (Atom) -> ANF raise) -> ANF raise {
     match e {
       // Integer literals: just pass to continuation
       Int(i) => k(AtomInt(i))
@@ -233,69 +233,75 @@ pub fn convert(term : @parser.Term) -> ANF raise {
         Fun(f, params, evaled_t, k(AtomVar(f)))
       }
       // Function application
-      App(f_term, x_term) =>
-        letStar(go(f_term, _), fn(f_atom) -> ANF raise {
-          letStar(go(x_term, _), fn(x_atom) -> ANF raise {
-            match f_atom {
-              AtomVar(f_var) => {
-                let r = @rename.fresh("r")
-                let args = @list.from_array([x_atom])
-                App(r, f_var, args, k(AtomVar(r)))
-              }
-              atom =>
-                // For now, just create a dummy halt to avoid error
-                // In a proper implementation, this should be an error
-                raise MustApplyVarError(atom)
-            }
-          })
-        })
-      // Binary operations
-      Bop(op, x_term, y_term) =>
-        // Convert left operand
-        letStar(go(x_term, _), fn(x_atom) {
-          // Then convert right operand
-          letStar(go(y_term, _), fn(y_atom) {
-            let r = @rename.fresh("r")
-            Bop(r, op, x_atom, y_atom, k(AtomVar(r)))
-          })
-        })
-      // If-then-else: introduce join point
-      // Example transformation:
-      // 1 + if 2 then 3 else 4
-      //        ↓
-      // join j1(p0) =
-      //   let r2 = 1 + p0 in
-      //   return r2
-      // in
-      // if(2) then
-      //   let r3 = 3
-      //   jump j1(r3)
-      // else
-      //   let r4 = 4
-      //   jump j1(r4)
-      If(e_cond, t_then, t_else) =>
-        // We introduce Join Point here
-        // https://compiler.club/compiling-lambda-calculus/#:~:text=we%20introduce%20a-,join%20point,-%3A
-        letStar(go(e_cond, _), fn(e_atom) {
-          // Create join point label
-          let j = @rename.fresh("j")
-          // Parameter to hold result from then/else branches
-          let p = @rename.fresh("p")
-          // Jump that will be called at the end of each branch
-          let join_var = Jump(j, Some(AtomVar(p)))
-          // Create the join point with both branches
-          Join(
-            j,
-            Some(p),
-            k(AtomVar(p)),
-            If(
-              e_atom,
-              go(t_then, fn(_) { join_var }),
-              go(t_else, fn(_) { join_var }),
-            ),
-          )
-        })
+      App(f_term, x_term) => app_go(f_term, x_term, k)
+      Bop(op, x_term, y_term) => bop_go(op, x_term, y_term, k)
+      If(e_cond, t_then, t_else) => if_go(e_cond, t_then, t_else, k)
     }
+  }
+
+  and app_go = fn(f_term, x_term, k) raise {
+    letStar(go(f_term, _), fn(f_atom) -> ANF raise {
+      letStar(go(x_term, _), fn(x_atom) -> ANF raise {
+        match f_atom {
+          AtomVar(f_var) => {
+            let r = @rename.fresh("r")
+            let args = @list.from_array([x_atom])
+            App(r, f_var, args, k(AtomVar(r)))
+          }
+          atom => raise MustApplyVarError(atom)
+        }
+      })
+    })
+  }
+
+  // Binary operations
+  and bop_go = fn(op, x_term, y_term, k) raise {
+    // Convert left operand
+    letStar(go(x_term, _), fn(x_atom) {
+      // Then convert right operand
+      letStar(go(y_term, _), fn(y_atom) {
+        let r = @rename.fresh("r")
+        Bop(r, op, x_atom, y_atom, k(AtomVar(r)))
+      })
+    })
+  }
+
+  // If-then-else: introduce join point
+  // Example transformation:
+  // 1 + if 2 then 3 else 4
+  //        ↓
+  // join j1(p0) =
+  //   let r2 = 1 + p0 in
+  //   return r2
+  // in
+  // if(2) then
+  //   let r3 = 3
+  //   jump j1(r3)
+  // else
+  //   let r4 = 4
+  //   jump j1(r4)
+  and if_go = fn(e_cond, t_then, t_else, k) raise {
+    // We introduce Join Point here
+    // https://compiler.club/compiling-lambda-calculus/#:~:text=we%20introduce%20a-,join%20point,-%3A
+    letStar(go(e_cond, _), fn(e_atom) {
+      // Create join point label
+      let j = @rename.fresh("j")
+      // Parameter to hold result from then/else branches
+      let p = @rename.fresh("p")
+      // Jump that will be called at the end of each branch
+      let join_var = Jump(j, Some(AtomVar(p)))
+      // Create the join point with both branches
+      Join(
+        j,
+        Some(p),
+        k(AtomVar(p)),
+        If(
+          e_atom,
+          go(t_then, fn(_) { join_var }),
+          go(t_else, fn(_) { join_var }),
+        ),
+      )
+    })
   }
 
   // Entry point: convert term with halt continuation
