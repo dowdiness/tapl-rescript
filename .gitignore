@@ -3,5 +3,7 @@
 /lib/
 .bsb.lock
 .merlin
+*.o
 *.s
 *.out
+*.c
