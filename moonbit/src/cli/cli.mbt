@@ -1,8 +1,8 @@
 fn main {
   let options = [
-    Opt::new("code"),
-    Opt::new("input", short="i"),
-    Opt::new("output", value="lambda.s", short="o")
+    Arg::new("code"),
+    Arg::new("input", short="i"),
+    Arg::new("output", value="lambda.s", short="o")
   ]
   let cli = try? Cli::new("lambda", options)
   match cli {
