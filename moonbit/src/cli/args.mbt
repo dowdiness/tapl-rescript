@@ -18,71 +18,69 @@ pub fn Arg::new(
   Arg::{ name, flag, value, short }
 }
 
-///|
-struct MatchedArg {
-  name : String
-  value : String?
+enum MatchedArg {
+  Flag
+  Value(String)
 } derive(Show)
 
 ///|
 struct Cli {
   name : String
   path : @path.Path
-  options : Array[Arg]
-  matched_args : Array[MatchedArg]
+  args : Array[Arg]
+  matched_args : Map[String, MatchedArg]
 }
 
 ///|
-impl Show for Cli with output(self, logger) {
+pub impl Show for Cli with output(self, logger) {
   logger
   ..write_string("Name: \{self.name}")
   ..write_string("\nPath: \{self.path.to_string()}")
   ..write_string("\nArgs: ")
-  ..write_object(self.options)
+  ..write_object(self.args)
   ..write_string("\nMatched: ")
   ..write_iter(self.matched_args.iter())
 }
 
 ///|
-pub fn Cli::new(name : String, options : Array[Arg]) -> Cli raise {
+pub fn Cli::new(name : String, arg_config : Array[Arg]) -> Cli raise {
   let all_args = @sys.get_cli_args()
   let path = @path.Path(all_args[0])
   let args = all_args[1:].to_array()
-  if args.length() > options.length() {
+  if args.length() > arg_config.length() {
     fail("Too many arguments: \{args}")
   }
-  fn handleOption(
-    option : StringView,
+  fn handleArg(
+    arg : StringView,
     pred : (String) -> (Arg) -> Bool,
-  ) -> MatchedArg raise {
-    let option = option.to_string()
-    let parts = split_at(option, '=')
+  ) -> (String, MatchedArg) raise {
+    let arg = arg.to_string()
+    let parts = split_at(arg, '=')
     match parts {
       Some((key, value)) => {
-        let selected = options.iter().find_first(pred(key))
-        match selected {
-          Some(selected) => MatchedArg::{ name: selected.name, value: Some(value) }
-          None => fail("Invalid option: \{option}")
+        match arg_config.iter().find_first(pred(key)) {
+          Some(selected) => (selected.name, MatchedArg::Value(value.to_string()))
+          None => fail("Invalid arg: \{arg}")
         }
       }
-      None => fail("Invalid option: \{option}")
+      None => (arg, MatchedArg::Flag)
     }
   }
 
-  let matched_args = args.mapi(fn(i, arg) {
+  let matched_args = Map::from_array(args.mapi(fn(i, arg) {
     match arg {
-      // long option
-      [.. "--", .. option] =>
-        handleOption(option, fn(name) { fn(opt) { opt.name == name } })
-      // short option
-      [.. "-", .. option] =>
-        handleOption(option, fn(short) {
+      // long arg
+      [.. "--", .. arg] =>
+        handleArg(arg, fn(name) { fn(opt) { opt.name == name } })
+      // short arg
+      [.. "-", .. arg] =>
+        handleArg(arg, fn(short) {
           fn(opt) { opt.short.unwrap_or_default() == short }
         })
-      value => MatchedArg::{ name: options[i].name, value: Some(value) }
+      value => (arg_config[i].name, MatchedArg::Value(value.to_string()))
     }
-  })
-  Cli::{ name, path, options, matched_args }
+  }))
+  Cli::{ name, path, args: arg_config, matched_args }
 }
 
 // Helper functions

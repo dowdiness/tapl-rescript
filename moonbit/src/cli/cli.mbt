@@ -1,17 +1,31 @@
 fn main {
-  let options = [
+  let mut code = "1 + 2"
+  let debug_mode = true
+  let output_file = "lambda.s"
+
+  let args = [
     Arg::new("code"),
     Arg::new("input", short="i"),
     Arg::new("output", value="lambda.s", short="o")
   ]
-  let cli = try? Cli::new("lambda", options)
+  let cli = try? Cli::new("lambda", args)
   match cli {
-    Ok(cli) => println(cli)
+    Ok(cli) => {
+      let args = cli.matched_args
+      let input_path = match args.get("input"){
+        Some(Value(path)) => path
+        _ => "./example.mm"
+      }
+
+      let source = try? @fs.read_file_to_string(input_path)
+
+      code = match source {
+        Ok(source) => source
+        Err(_) => code
+      }
+    }
     Err(e) => println("Error: \{e}")
   }
-  let code = "1 + 2"
-  let debug_mode = false
-  let output_file = "lambda.s"
   // コンパイル処理
   try {
     if debug_mode { println("Code:\n\{code}\n") }
