@@ -2,7 +2,7 @@
 
 // Basic arithmetic operations and primitives
 
-pub suberror LoweringError String
+pub suberror LoweringError { LoweringError(String) }
 
 // Helper function to convert atom to string representation
 fn atomToASM(atom: @compile.Atom) -> String {

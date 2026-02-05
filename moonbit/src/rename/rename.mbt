@@ -1,6 +1,6 @@
 // Uniquify variable names in a term to ensure all variables have unique names.
 
-pub suberror RenameError String
+pub suberror RenameError { RenameError(String) }
 ///|
 let counter : Ref[Int] = { val: -1 }
 
