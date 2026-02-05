@@ -41,7 +41,7 @@ fn main {
     println("Successfully compiled to \{output_file}")
   } catch {
     @parser.TokenizationError(s) => println("TokenizationError: \{s}")
-    @parser.ParseError(s) => println("ParseError: \{s}")
+    @parser.ParseError(s, _) => println("ParseError: \{s}")
     @rename.RenameError(s) => println("RenameError: \{s}")
     @lowering.LoweringError(s) => println("LoweringError: \{s}")
     e => println("Error: \{e}")
