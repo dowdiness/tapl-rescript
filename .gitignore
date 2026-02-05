@@ -5,3 +5,8 @@
 .merlin
 *.s
 *.out
+*.o
+
+.mooncakes/
+_build/
+target/
