@@ -1,0 +1,25 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "lambda/rename"
+
+import {
+  "lambda/parser",
+}
+
+// Values
+pub fn fresh(String) -> String
+
+pub fn rename(@parser.Term) -> @parser.Term raise RenameError
+
+pub fn reset() -> Unit
+
+// Errors
+pub suberror RenameError {
+  RenameError(String)
+}
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

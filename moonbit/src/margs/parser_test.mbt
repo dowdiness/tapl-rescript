@@ -379,10 +379,9 @@ test "unknown subcommand raises error" {
 ///|
 test "subcommand with parent required positional does not fail" {
   let sub = subcommand("build", options=[flag("release", long="release")])
-  let p = make_test_parser(
-    positionals=[positional("file", required=true)],
-    subcommands=[sub],
-  )
+  let p = make_test_parser(positionals=[positional("file", required=true)], subcommands=[
+    sub,
+  ])
   // Subcommand dispatch should NOT check parent positionals
   let result = p.parse(["build", "--release"])
   inspect(result.command_path.length(), content="2")
@@ -391,10 +390,9 @@ test "subcommand with parent required positional does not fail" {
 
 ///|
 test "subcommand option takes precedence over parent with same key" {
-  let sub = subcommand(
-    "build",
-    options=[str_option("output", long="output", default="build/out")],
-  )
+  let sub = subcommand("build", options=[
+    str_option("output", long="output", default="build/out"),
+  ])
   let p = make_test_parser(
     options=[str_option("output", long="output", default="default/out")],
     subcommands=[sub],
@@ -406,10 +404,7 @@ test "subcommand option takes precedence over parent with same key" {
 
 ///|
 test "subcommand explicit value not overwritten by parent default" {
-  let sub = subcommand(
-    "build",
-    options=[str_option("output", long="output")],
-  )
+  let sub = subcommand("build", options=[str_option("output", long="output")])
   let p = make_test_parser(
     options=[str_option("output", long="output", default="default/out")],
     subcommands=[sub],
@@ -421,10 +416,7 @@ test "subcommand explicit value not overwritten by parent default" {
 ///|
 test "positional parsed when subcommands defined but not matched" {
   let sub = subcommand("build")
-  let p = make_test_parser(
-    positionals=[positional("file")],
-    subcommands=[sub],
-  )
+  let p = make_test_parser(positionals=[positional("file")], subcommands=[sub])
   let result = p.parse(["hello.txt"])
   inspect(result.get_positional(0), content="Some(\"hello.txt\")")
   inspect(result.command_path.length(), content="1")
@@ -433,10 +425,7 @@ test "positional parsed when subcommands defined but not matched" {
 ///|
 test "subcommand still works when positionals also defined" {
   let sub = subcommand("build", options=[flag("release", long="release")])
-  let p = make_test_parser(
-    positionals=[positional("file")],
-    subcommands=[sub],
-  )
+  let p = make_test_parser(positionals=[positional("file")], subcommands=[sub])
   let result = p.parse(["build", "--release"])
   inspect(result.command_path.length(), content="2")
   inspect(result.get_bool("release"), content="true")

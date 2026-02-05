@@ -18,6 +18,7 @@ pub fn Arg::new(
   Arg::{ name, flag, value, short }
 }
 
+///|
 enum MatchedArg {
   Flag
   Value(String)
@@ -57,35 +58,38 @@ pub fn Cli::new(name : String, arg_config : Array[Arg]) -> Cli raise {
     let arg = arg.to_string()
     let parts = split_at(arg, '=')
     match parts {
-      Some((key, value)) => {
+      Some((key, value)) =>
         match arg_config.iter().find_first(pred(key)) {
-          Some(selected) => (selected.name, MatchedArg::Value(value.to_string()))
+          Some(selected) =>
+            (selected.name, MatchedArg::Value(value.to_string()))
           None => fail("Invalid arg: \{arg}")
         }
-      }
       None => (arg, MatchedArg::Flag)
     }
   }
 
-  let matched_args = Map::from_array(args.mapi(fn(i, arg) {
-    match arg {
-      // long arg
-      [.. "--", .. arg] =>
-        handleArg(arg, fn(name) { fn(opt) { opt.name == name } })
-      // short arg
-      [.. "-", .. arg] =>
-        handleArg(arg, fn(short) {
-          fn(opt) { opt.short.unwrap_or_default() == short }
-        })
-      value => (arg_config[i].name, MatchedArg::Value(value.to_string()))
-    }
-  }))
+  let matched_args = Map::from_array(
+    args.mapi(fn(i, arg) {
+      match arg {
+        // long arg
+        [.. "--", .. arg] =>
+          handleArg(arg, fn(name) { fn(opt) { opt.name == name } })
+        // short arg
+        [.. "-", .. arg] =>
+          handleArg(arg, fn(short) {
+            fn(opt) { opt.short.unwrap_or_default() == short }
+          })
+        value => (arg_config[i].name, MatchedArg::Value(value.to_string()))
+      }
+    }),
+  )
   Cli::{ name, path, args: arg_config, matched_args }
 }
 
 // Helper functions
 
-///| Split a string into two elements tuple at the first occurrence of a delimiter.
+///|
+/// Split a string into two elements tuple at the first occurrence of a delimiter.
 fn split_at(s : String, delimiter : Char) -> (String, String)? {
   match s.find(delimiter.to_string()) {
     Some(i) => {
@@ -102,36 +106,43 @@ fn split_at(s : String, delimiter : Char) -> (String, String)? {
 
 // ===== split_at Helper Tests =====
 
+///|
 test "split_at with valid delimiter" {
   let result = split_at("key=value", '=')
   inspect(result, content="Some((\"key\", \"value\"))")
 }
 
+///|
 test "split_at with multiple delimiters - splits at first" {
   let result = split_at("key=value=extra", '=')
   inspect(result, content="Some((\"key\", \"value=extra\"))")
 }
 
+///|
 test "split_at with no delimiter" {
   let result = split_at("nodelimiter", '=')
   inspect(result, content="None")
 }
 
+///|
 test "split_at with empty string" {
   let result = split_at("", '=')
   inspect(result, content="None")
 }
 
+///|
 test "split_at with delimiter at start" {
   let result = split_at("=value", '=')
   inspect(result, content="Some((\"\", \"value\"))")
 }
 
+///|
 test "split_at with delimiter at end" {
   let result = split_at("key=", '=')
   inspect(result, content="Some((\"key\", \"\"))")
 }
 
+///|
 test "split_at with space delimiter" {
   let result = split_at("hello world", ' ')
   inspect(result, content="Some((\"hello\", \"world\"))")

@@ -1,24 +1,22 @@
+///|
 fn main {
   let mut code = "1 + 2"
   let debug_mode = true
   let output_file = "lambda.s"
-
   let args = [
     Arg::new("code"),
     Arg::new("input", short="i"),
-    Arg::new("output", value="lambda.s", short="o")
+    Arg::new("output", value="lambda.s", short="o"),
   ]
   let cli = try? Cli::new("lambda", args)
   match cli {
     Ok(cli) => {
       let args = cli.matched_args
-      let input_path = match args.get("input"){
+      let input_path = match args.get("input") {
         Some(Value(path)) => path
         _ => "./example.mm"
       }
-
       let source = try? @fs.read_file_to_string(input_path)
-
       code = match source {
         Ok(source) => source
         Err(_) => code
@@ -28,15 +26,27 @@ fn main {
   }
   // コンパイル処理
   try {
-    if debug_mode { println("Code:\n\{code}\n") }
+    if debug_mode {
+      println("Code:\n\{code}\n")
+    }
     let term = @parser.parse(code)
-    if debug_mode { println("Parsed:\n\{@parser.print_term(term)}\n") }
+    if debug_mode {
+      println("Parsed:\n\{@parser.print_term(term)}\n")
+    }
     let renamed = @rename.rename(term)
-    if debug_mode { println("Renamed:\n\{@parser.print_term(renamed)}\n") }
+    if debug_mode {
+      println("Renamed:\n\{@parser.print_term(renamed)}\n")
+    }
     let anf = @compile.convert(renamed)
-    if debug_mode { println("ANF:\n" + anf.to_string() + "\n\n" + @compile.print_anf(anf) + "\n") }
+    if debug_mode {
+      println(
+        "ANF:\n" + anf.to_string() + "\n\n" + @compile.print_anf(anf) + "\n",
+      )
+    }
     let assembly = @lowering.lowering(anf)
-    if debug_mode { println("Assembly:\n" + assembly) }
+    if debug_mode {
+      println("Assembly:\n" + assembly)
+    }
     @fs.write_string_to_file(output_file, assembly)
     println("Successfully compiled to \{output_file}")
   } catch {

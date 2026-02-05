@@ -1,0 +1,29 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "lambda/cli"
+
+// Values
+
+// Errors
+
+// Types and methods
+pub struct Arg {
+  name : String
+  flag : Bool?
+  value : String?
+  short : String?
+}
+pub fn Arg::new(String, flag? : Bool, value? : String, short? : String) -> Self
+pub impl Eq for Arg
+pub impl Show for Arg
+
+type Cli
+pub fn Cli::new(String, Array[Arg]) -> Self raise
+pub impl Show for Cli
+
+type MatchedArg
+pub impl Show for MatchedArg
+
+// Type aliases
+
+// Traits
+

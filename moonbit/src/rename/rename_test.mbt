@@ -1,5 +1,6 @@
 // ===== Integration Tests =====
 
+///|
 test "parse and rename identity function" {
   let expr = @parser.parse("λx.x")
   reset()
@@ -8,6 +9,7 @@ test "parse and rename identity function" {
   inspect(printed.contains("x0"), content="true")
 }
 
+///|
 test "parse and rename nested lambda" {
   let expr = @parser.parse("λf.λx.f x")
   reset()
