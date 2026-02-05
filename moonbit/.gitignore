@@ -2,6 +2,7 @@
 /node_modules/
 *.s
 *.out
+target
 /target/
 .mooncakes
 /_build/
