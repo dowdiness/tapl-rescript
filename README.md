@@ -1,6 +1,6 @@
 # @antisatori/tapl
 
-A lambda calculus compiler that generates LLVM IR, based on "Types and Programming Languages" by Benjamin C. Pierce.
+A lambda calculus compiler that generates LLVM IR, based on "Types and Programming Languages".
 
 [![npm version](https://badge.fury.io/js/@antisatori%2Ftapl.svg)](https://www.npmjs.com/package/@antisatori/tapl)
 
@@ -114,11 +114,3 @@ pnpm run test
 # Watch mode
 pnpm run res:dev
 ```
-
-## License
-
-ISC © Koji Ishimoto
-
-## Related
-
-Based on "Types and Programming Languages" by Benjamin C. Pierce. This implementation focuses on the lambda calculus compiler with LLVM IR generation.

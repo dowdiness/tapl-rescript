@@ -33,7 +33,7 @@ pub enum ANF {
 } derive(Show, Eq)
 
 ///| Exception for invalid atom application
-pub suberror MustApplyVarError Atom
+pub suberror MustApplyVarError { MustApplyVarError(Atom) }
 
 ///| Pretty print an atom
 pub fn print_atom(atom : Atom) -> String {
