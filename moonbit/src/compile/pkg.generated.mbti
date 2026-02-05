@@ -1,0 +1,51 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "lambda/compile"
+
+import {
+  "lambda/parser",
+  "moonbitlang/core/list",
+}
+
+// Values
+pub fn convert(@parser.Term) -> ANF raise
+
+pub fn print_anf(ANF) -> String
+
+pub fn print_atom(Atom) -> String
+
+// Errors
+pub suberror MustApplyVarError {
+  MustApplyVarError(Atom)
+}
+
+// Types and methods
+pub enum ANF {
+  Halt(Atom)
+  Fun(String, @list.List[String], ANF, ANF)
+  Join(String, String?, ANF, ANF)
+  Jump(String, Atom?)
+  App(String, String, @list.List[Atom], ANF)
+  Bop(String, @parser.Bop, Atom, Atom, ANF)
+  If(Atom, ANF, ANF)
+  Tuple(String, @list.List[Atom], ANF)
+  Proj(String, String, Int, ANF)
+}
+pub impl Eq for ANF
+pub impl Show for ANF
+
+pub enum Atom {
+  AtomInt(Int)
+  AtomVar(String)
+  AtomGlob(String)
+}
+pub impl Eq for Atom
+pub impl Show for Atom
+
+type Indent
+pub impl Default for Indent
+pub impl Eq for Indent
+
+// Type aliases
+
+// Traits
+

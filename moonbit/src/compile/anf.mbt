@@ -1,14 +1,16 @@
 // ANF (A-Normal Form) Conversion
 // https://compiler.club/anf-conversion/
 
-///| Atoms - these are either variables or constants
+///|
+/// Atoms - these are either variables or constants
 pub enum Atom {
   AtomInt(Int)
   AtomVar(@parser.VarName)
   AtomGlob(@parser.VarName)
 } derive(Show, Eq)
 
-///| ANF representation
+///|
+/// ANF representation
 pub enum ANF {
   // Halt with a value
   Halt(Atom)
@@ -32,10 +34,14 @@ pub enum ANF {
   Proj(@parser.VarName, @parser.VarName, Int, ANF)
 } derive(Show, Eq)
 
-///| Exception for invalid atom application
-pub suberror MustApplyVarError { MustApplyVarError(Atom) }
+///|
+/// Exception for invalid atom application
+pub suberror MustApplyVarError {
+  MustApplyVarError(Atom)
+}
 
-///| Pretty print an atom
+///|
+/// Pretty print an atom
 pub fn print_atom(atom : Atom) -> String {
   match atom {
     AtomInt(i) => i.to_string()
@@ -55,30 +61,36 @@ test "print_atom" {
   inspect(print_atom(AtomGlob("sys")), content="@sys")
 }
 
+///|
 struct Indent {
-  level: Int
-  space: String
+  level : Int
+  space : String
 } derive(Eq)
 
+///|
 pub impl Default for Indent with default() {
   Indent::{ level: 0, space: "  " }
 }
 
+///|
 impl Show for Indent with output(self, logger) {
   logger.write_string(self.space.repeat(self.level))
 }
 
-fn Indent::incr(self: Self) -> Self {
+///|
+fn Indent::incr(self : Self) -> Self {
   { ..self, level: self.level + 1 }
 }
 
-fn Indent::decr(self: Self) -> Self {
-  { ..self, level: self.level -1 }
+///|
+fn Indent::decr(self : Self) -> Self {
+  { ..self, level: self.level - 1 }
 }
 
-///| Pretty print ANF
+///|
+/// Pretty print ANF
 pub fn print_anf(anf : ANF) -> String {
-  fn go(a : ANF, indent: Indent) -> String {
+  fn go(a : ANF, indent : Indent) -> String {
     let decredIndent = indent.decr()
     let incredIndent = indent.incr()
     match a {
@@ -87,22 +99,28 @@ pub fn print_anf(anf : ANF) -> String {
         let params = xs.to_array().join(", ")
         "fun \{f}(\{params}) =\n\{incredIndent}\{go(e, incredIndent)}\n\{indent}in\n\{indent}\{go(k, indent)}"
       }
-      Join(j, Some(p), e, k) => "join \{j} (\{p}) =\n\{incredIndent}\{go(e, incredIndent)}\n\{indent}in\n\{indent}\{go(k, incredIndent)}"
-      Join(j, None, e, k) => "join \{j} =\n\{incredIndent}\{go(e, incredIndent)}\n\{indent}in\n\{indent}\{go(k, incredIndent)}"
+      Join(j, Some(p), e, k) =>
+        "join \{j} (\{p}) =\n\{incredIndent}\{go(e, incredIndent)}\n\{indent}in\n\{indent}\{go(k, incredIndent)}"
+      Join(j, None, e, k) =>
+        "join \{j} =\n\{incredIndent}\{go(e, incredIndent)}\n\{indent}in\n\{indent}\{go(k, incredIndent)}"
       Jump(j, Some(atom)) => "jump \{j}(\{print_atom(atom)})"
       Jump(j, None) => "jump \{j}"
       App(r, f, vs, e) => {
         let args = vs.map(print_atom).to_array().join(", ")
         "let \{r} = \{f}(\{args}) in\n\{indent}\{go(e, indent)}"
       }
-      Bop(r, Plus, x, y, e) => "let \{r} = \{print_atom(x)} + \{print_atom(y)} in\n\{indent}\{go(e, indent)}"
-      Bop(r, Minus, x, y, e) => "let \{r} = \{print_atom(x)} - \{print_atom(y)} in\n\{indent}\{go(e, indent)}"
-      If(atom, t, f) => "if \{print_atom(atom)} then\n\{indent}\{go(t, indent)} \n\{decredIndent}else\n\{indent}\{go(f, indent)}"
+      Bop(r, Plus, x, y, e) =>
+        "let \{r} = \{print_atom(x)} + \{print_atom(y)} in\n\{indent}\{go(e, indent)}"
+      Bop(r, Minus, x, y, e) =>
+        "let \{r} = \{print_atom(x)} - \{print_atom(y)} in\n\{indent}\{go(e, indent)}"
+      If(atom, t, f) =>
+        "if \{print_atom(atom)} then\n\{indent}\{go(t, indent)} \n\{decredIndent}else\n\{indent}\{go(f, indent)}"
       Tuple(r, vs, e) => {
         let values = vs.map(print_atom).to_array().join(", ")
         "let \{r} = (\{values}) in\n\{indent}\{go(e, indent)}"
       }
-      Proj(r, x, i, e) => "let \{r} = \{x}.\{i.to_string()} in\n\{indent}\{go(e, indent)}"
+      Proj(r, x, i, e) =>
+        "let \{r} = \{x}.\{i.to_string()} in\n\{indent}\{go(e, indent)}"
     }
   }
 
@@ -198,7 +216,8 @@ test "print_anf/complex_constructs" {
   inspect(print_anf(proj_expr), content="let elem = tuple.0 in\nhalt elem")
 }
 
-///| Helper function to create Halt
+///|
+/// Helper function to create Halt
 #warnings("-unused_error_type")
 fn mk_halt(v : Atom) -> ANF raise? {
   Halt(v)
@@ -211,12 +230,14 @@ test "mk_halt" {
   inspect(mk_halt(AtomGlob("global")), content="Halt(AtomGlob(\"global\"))")
 }
 
-///| let* operator for continuation-passing style in direct style
+///|
+/// let* operator for continuation-passing style in direct style
 fn[A, B] letStar(f : (A) -> B raise?, k : A) -> B raise? {
   f(k)
 }
 
-///| ANF conversion algorithm using continuation-passing style (CPS)
+///|
+/// ANF conversion algorithm using continuation-passing style (CPS)
 pub fn convert(term : @parser.Term) -> ANF raise {
   // Main conversion function with continuation
   letrec go = fn(e : @parser.Term, k : (Atom) -> ANF raise) -> ANF raise {
@@ -238,7 +259,6 @@ pub fn convert(term : @parser.Term) -> ANF raise {
       If(e_cond, t_then, t_else) => if_go(e_cond, t_then, t_else, k)
     }
   }
-
   and app_go = fn(f_term, x_term, k) raise {
     letStar(go(f_term, _), fn(f_atom) -> ANF raise {
       letStar(go(x_term, _), fn(x_atom) -> ANF raise {

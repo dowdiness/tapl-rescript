@@ -1,0 +1,110 @@
+# Moonbit Lambda Compiler Justfile
+
+# デフォルトレシピ - 利用可能なコマンドを表示
+default:
+    @just --list
+
+# すべてのテストを実行
+test:
+    moon test
+
+# 特定のパッケージのテストを実行
+test-package package:
+    moon test --package {{package}}
+
+# パーサーのテストを実行
+test-parser:
+    moon test --package lambda/parser
+
+# ANFコンパイルのテストを実行
+test-compile:
+    moon test --package lambda/compile
+
+# リネームのテストを実行
+test-rename:
+    moon test --package lambda/rename
+
+# プロジェクトをビルド
+build:
+    moon build
+
+# 型チェックを実行
+check:
+    moon check
+
+# コードをフォーマット
+fmt:
+    moon fmt
+
+# ビルド成果物をクリーン
+clean:
+    moon clean
+
+# テスト、チェック、ビルドを順番に実行
+all: test check build
+
+# ウォッチモードでテストを実行（変更時に自動再実行）
+watch-test:
+    moon test --watch
+
+# 開発用：フォーマット、チェック、テスト、ビルドを実行
+dev: fmt check test build
+
+# アセンブリ出力を確認
+check-asm file:
+    #!/usr/bin/env bash
+    if [ -f "moonbit/{{file}}" ]; then
+        cat "moonbit/{{file}}"
+    else
+        echo "ファイルが見つかりません: moonbit/{{file}}"
+    fi
+
+# カバレッジレポートを生成
+coverage:
+    moon test --enable-coverage
+    moon coverage report
+
+# lambda.sをアセンブル・リンク
+compile-asm:
+    nasm -f elf64 lambda.s -o lambda.o
+    ld lambda.o -o lambda
+    @echo "✓ lambda.sをコンパイルしました → lambda"
+
+# lambda.sを実行（終了コードを表示）
+run-asm: compile-asm
+    #!/usr/bin/env bash
+    ./lambda
+    exit_code=$?
+    echo "終了コード: $exit_code"
+
+# 指定したアセンブリファイルをコンパイル
+compile-asm-file file:
+    #!/usr/bin/env bash
+    base=$(basename {{file}} .s)
+    nasm -f elf64 {{file}} -o ${base}.o
+    ld ${base}.o -o ${base}
+    echo "✓ {{file}}をコンパイルしました → ${base}"
+
+# 指定したアセンブリファイルを実行
+run-asm-file file: (compile-asm-file file)
+    #!/usr/bin/env bash
+    base=$(basename {{file}} .s)
+    ./${base}
+    exit_code=$?
+    echo "終了コード: $exit_code"
+
+# アセンブリの成果物をクリーン
+clean-asm:
+    rm -f *.o lambda addtwo test2 add_two_numbers
+    @echo "✓ アセンブリの成果物をクリーンしました"
+
+# CLIでlambdaをコンパイルしてアセンブリを実行
+compile-and-run example="lambda_example.mm": build
+    #!/usr/bin/env bash
+    moon run src/cli -- {{example}}
+    if [ -f lambda.s ]; then
+        just run-asm
+    else
+        echo "エラー: lambda.sが生成されませんでした"
+        exit 1
+    fi

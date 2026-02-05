@@ -1,7 +1,9 @@
 // Lexer for Lambda Calculus
 
 ///|
-pub suberror TokenizationError { TokenizationError(String) }
+pub suberror TokenizationError {
+  TokenizationError(String)
+}
 
 ///|
 fn is_big_alphabet(code : Int) -> Bool {
@@ -120,7 +122,8 @@ fn tokenize_helper(
   }
 }
 
-///| Tokenize the input string into an array of tokens
+///|
+/// Tokenize the input string into an array of tokens
 pub fn tokenize(input : String) -> Array[Token] raise TokenizationError {
   tokenize_helper(input, 0, [])
 }

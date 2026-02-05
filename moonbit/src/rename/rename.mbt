@@ -1,6 +1,10 @@
 // Uniquify variable names in a term to ensure all variables have unique names.
 
-pub suberror RenameError { RenameError(String) }
+///|
+pub suberror RenameError {
+  RenameError(String)
+}
+
 ///|
 let counter : Ref[Int] = { val: -1 }
 
@@ -10,16 +14,20 @@ pub fn fresh(prefix : String) -> String {
   prefix + counter.val.to_string()
 }
 
+///|
 pub fn reset() -> Unit {
   counter.val = -1
 }
 
 ///|
 pub fn rename(term : @parser.Term) -> @parser.Term raise RenameError {
-  fn go(env : Map[String, String], t : @parser.Term) -> @parser.Term raise RenameError {
+  fn go(
+    env : Map[String, String],
+    t : @parser.Term,
+  ) -> @parser.Term raise RenameError {
     match t {
       Int(i) => Int(i)
-      Var(name) => {
+      Var(name) =>
         match env.get(name) {
           Some(var_name) => Var(var_name)
           None => {
@@ -27,7 +35,6 @@ pub fn rename(term : @parser.Term) -> @parser.Term raise RenameError {
             raise RenameError(msg)
           }
         }
-      }
       Lam(name, t) => {
         let feesh_name = fresh(name)
         env.set(name, feesh_name)

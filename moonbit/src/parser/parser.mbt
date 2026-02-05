@@ -1,7 +1,9 @@
 // Parser for Lambda Calculus expressions
 
 ///|
-pub suberror ParseError { ParseError(String, Token) }
+pub suberror ParseError {
+  ParseError(String, Token)
+}
 
 ///|
 priv struct Parser {
@@ -38,7 +40,8 @@ fn expect(parser : Parser, expected : Token) -> Parser raise ParseError {
   }
 }
 
-///| Parse the input string into a Term
+///|
+/// Parse the input string into a Term
 pub fn parse(input : String) -> Term raise {
   let tokens = tokenize(input)
   let parser = make_parser(tokens)
